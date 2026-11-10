@@ -1,0 +1,9 @@
+# Índice de recetas. Lo que devuelve `copypasta list`.
+# Cada entrada:
+#   - id: fastapi-base                 # único, kebab-case
+#     category: backend                # backend | agents | frontend | infra | ...
+#     description: API REST base con FastAPI, config por entorno y tests   # una línea
+#     tags: [api, python, fastapi]
+#     path: recipes/backend/fastapi-base
+
+recipes: []
