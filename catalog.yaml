@@ -5,5 +5,18 @@
 #     description: API REST base con FastAPI, config por entorno y tests   # una línea
 #     tags: [api, python, fastapi]
 #     path: recipes/backend/fastapi-base
+#     requires: [otra-receta]          # opcional
 
-recipes: []
+recipes:
+  - id: langchain-agent
+    category: agents
+    description: Agente LLM con create_agent (LangChain v1), clase base, factory multi-proveedor, tools, prompts YAML y tests sin API keys
+    tags: [agent, langchain, llm, tools, prompts, python]
+    path: recipes/agents/langchain-agent
+
+  - id: langgraph-graph
+    category: agents
+    description: Grafo LangGraph de flujo fijo (router → agente | rechazo) con memoria propia, invoke JSON y streaming SSE
+    tags: [graph, langgraph, agent, streaming, memory, python]
+    path: recipes/agents/langgraph-graph
+    requires: [langchain-agent]
