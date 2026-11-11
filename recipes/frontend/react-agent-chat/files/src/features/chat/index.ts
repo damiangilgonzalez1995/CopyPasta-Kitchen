@@ -1,0 +1,6 @@
+export type { ChatApi, ChatRequest } from './chat-api'
+export { createHttpChatApi } from './chat-api'
+export { ChatView } from './components/ChatView'
+export type { ChatEvent } from './events'
+export { createFakeChatApi } from './fake-chat-api'
+export { useChat, type ChatMessage, type Step } from './use-chat'

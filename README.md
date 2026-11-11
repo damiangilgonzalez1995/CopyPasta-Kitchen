@@ -30,12 +30,14 @@ Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
 | `langchain-agent` | agents | Agente con `create_agent`: clase base, factory de LLM (OpenAI, Anthropic, Azure y Groq), tools, prompts YAML | usa `project-settings` |
 | `agent-memory` | agents | Memoria de conversación: backend en settings (RAM o SQL), ventana por turnos, idempotente, tests de conformidad | usa `project-settings` |
 | `langgraph-graph` | agents | Grafo de flujo fijo (router → agente \| rechazo) con salida en JSON o SSE | requiere `langchain-agent` y `agent-memory` |
+| `vite-react-base` | frontend | SPA Vite + React + TS para un backend Python: API intercambiable (http o fake) por configuración, cliente con auth y errores tipados | — |
+| `react-agent-chat` | frontend | Chat con un agente en streaming SSE: tokens, tools, cancelar, errores, Markdown seguro | requiere `vite-react-base`, usa `langgraph-graph` |
 
 `requires`: hay que copiar las dos recetas. `uses`: se integra con la otra receta, pero no la trae.
 
 ### Pendientes
 
-Ver la hoja de ruta. Todavía no existe receta de FastAPI, auth, RAG ni frontend.
+Ver la hoja de ruta. Todavía no existe receta de FastAPI, auth ni RAG.
 
 ## Conceptos
 
@@ -98,11 +100,13 @@ y síguela en lugar de inventar una estructura.
 ## Hoja de ruta
 
 1. [x] Definir objetivo y estructura (este README y `AGENTS.md`).
-2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md` (hecho: síntesis de agentes y grafos en `analysis/agentic-langgraph.md`).
+2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md` (hecho: síntesis en `analysis/agentic-langgraph.md` y `analysis/frontend.md`).
 3. [ ] Convertir los patrones comunes en recetas:
    - [x] `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph`
+   - [x] `vite-react-base`, `react-agent-chat`
    - [ ] `fastapi-base`: app, lifespan, routers, dependencias, errores
    - [ ] `auth-verifier`: verificación de tokens con factory (Supabase / doble de test)
-   - [ ] `rag-retriever`, `voice-providers` (STT/TTS), `observability`, frontend…
+   - [ ] `rag-retriever`, `voice-providers` (STT/TTS), `observability`
+   - [ ] Frontend: auth con Supabase (`TokenProvider`), router, e2e con Playwright contra el fake
 4. [ ] Implementar la CLI `copypasta`.
 5. [ ] (Opcional) Skill de Claude Code que envuelva la CLI.

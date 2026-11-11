@@ -35,3 +35,17 @@ recipes:
     tags: [memory, agent, history, sql, python]
     path: recipes/agents/agent-memory
     uses: [project-settings]
+
+  - id: vite-react-base
+    category: frontend
+    description: SPA Vite + React + TypeScript para un backend Python, con API intercambiable (http o fake) por configuración y tests
+    tags: [frontend, react, vite, typescript, api-client]
+    path: recipes/frontend/vite-react-base
+
+  - id: react-agent-chat
+    category: frontend
+    description: Chat React con un agente en streaming SSE (tokens, tools, cancelar, errores, Markdown) para el contrato de langgraph-graph
+    tags: [frontend, react, chat, sse, streaming, agent]
+    path: recipes/frontend/react-agent-chat
+    requires: [vite-react-base]
+    uses: [langgraph-graph]

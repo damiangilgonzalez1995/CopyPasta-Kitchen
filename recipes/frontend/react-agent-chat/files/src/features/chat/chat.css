@@ -1,0 +1,18 @@
+/* Uses only the tokens of the vite-react-base recipe (styles/tokens.css). */
+.chat { display: flex; flex-direction: column; gap: var(--space-3); min-height: 70vh; }
+.chat-header { display: flex; justify-content: flex-end; }
+.chat-messages { list-style: none; margin: 0; padding: 0; flex: 1; display: flex; flex-direction: column; gap: var(--space-3); overflow-y: auto; }
+.chat-message { max-width: 85%; padding: var(--space-2) var(--space-3); border-radius: var(--radius); border: 1px solid var(--color-border); }
+.chat-message--user { align-self: flex-end; background: var(--color-surface); }
+.chat-message--assistant { align-self: flex-start; background: var(--color-bg); }
+.chat-message p { margin: 0; }
+.chat-steps { list-style: none; margin: 0 0 var(--space-2); padding: 0; font-size: 0.85em; color: var(--color-muted); font-family: var(--font-mono); }
+.chat-steps [data-status='error'] { color: var(--color-danger); }
+.chat-error { color: var(--color-danger); }
+.chat-composer { display: flex; gap: var(--space-2); align-items: flex-end; }
+.chat-composer textarea { flex: 1; font: inherit; resize: vertical; padding: var(--space-2); border-radius: var(--radius); border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); }
+.button.button--ghost { background: transparent; color: var(--color-primary); border: 1px solid var(--color-border); }
+.markdown > :first-child { margin-top: 0; }
+.markdown > :last-child { margin-bottom: 0; }
+.markdown pre { overflow-x: auto; background: var(--color-surface); padding: var(--space-2); border-radius: var(--radius); }
+.markdown code { font-family: var(--font-mono); }

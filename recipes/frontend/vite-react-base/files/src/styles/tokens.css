@@ -1,0 +1,33 @@
+/* Design tokens: the ONLY place with raw colors, sizes and fonts. Components use var(--...).
+   Dark theme = same names, other values. tokens.test.ts checks text/background contrast (WCAG AA). */
+:root {
+  --color-bg: #ffffff;
+  --color-surface: #f4f5f7;
+  --color-text: #1c1f24;
+  --color-muted: #5b6270;
+  --color-primary: #2747c4;
+  --color-on-primary: #ffffff;
+  --color-danger: #b42318;
+  --color-border: #d9dce1;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --radius: 10px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #121418;
+    --color-surface: #1c1f25;
+    --color-text: #e8eaee;
+    --color-muted: #a3aab6;
+    --color-primary: #8ea2ff;
+    --color-on-primary: #10162f;
+    --color-danger: #ff8a80;
+    --color-border: #2e323a;
+  }
+}
