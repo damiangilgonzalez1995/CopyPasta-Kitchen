@@ -5,18 +5,33 @@
 #     description: API REST base con FastAPI, config por entorno y tests   # una línea
 #     tags: [api, python, fastapi]
 #     path: recipes/backend/fastapi-base
-#     requires: [otra-receta]          # opcional
+#     requires: [otra-receta]          # opcional: hay que copiarla también para que funcione
+#     uses: [otra-receta]              # opcional: referencia; se integra con ella pero no la trae
 
 recipes:
+  - id: project-settings
+    category: backend
+    description: Settings único del backend con pydantic-settings (.env), get_settings() en caché y composición por bloques
+    tags: [settings, config, env, pydantic, python]
+    path: recipes/backend/project-settings
+
   - id: langchain-agent
     category: agents
     description: Agente LLM con create_agent (LangChain v1), clase base, factory multi-proveedor, tools, prompts YAML y tests sin API keys
     tags: [agent, langchain, llm, tools, prompts, python]
     path: recipes/agents/langchain-agent
+    uses: [project-settings]
 
   - id: langgraph-graph
     category: agents
     description: Grafo LangGraph de flujo fijo (router → agente | rechazo) con memoria propia, invoke JSON y streaming SSE
     tags: [graph, langgraph, agent, streaming, memory, python]
     path: recipes/agents/langgraph-graph
-    requires: [langchain-agent]
+    requires: [langchain-agent, agent-memory]
+
+  - id: agent-memory
+    category: agents
+    description: Memoria de conversación para agentes con backend elegido en settings (RAM o SQL), ventana por turnos e idempotencia
+    tags: [memory, agent, history, sql, python]
+    path: recipes/agents/agent-memory
+    uses: [project-settings]

@@ -1,20 +1,16 @@
-"""Graph tests. Need the langchain-agent recipe installed in the same `agentic/` (and its tests/fakes.py)."""
+"""Graph tests. Need the langchain-agent and agent-memory recipes in the same `agentic/` (and tests/fakes.py)."""
 
 from typing import Any
 
 import pytest
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from langchain_core.messages import AIMessage, ToolMessage
 
 from agentic.agents import AssistantAgent, ClassifierAgent
 from agentic.context import AgentContext
 from agentic.conversation import answer_question, stream_answer
 from agentic.graph import EventType, ainvoke_graph
-from agentic.memory import InMemoryMemory, MemoryBackend, MemoryFactory, MemoryKey
-from agentic.memory.sql import metadata
+from agentic.memory import InMemoryMemory, MemoryKey
 from agentic.registry import registry
 from agentic.tools import ToolSet
 
@@ -142,26 +138,6 @@ async def test_stream_error_yields_error_event_without_details():
     assert "secret" not in str(events[-1].data)
 
 
-async def test_sql_memory_round_trip_keeps_tool_calls():
-    engine = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
-    metadata.create_all(engine)
-    memory = MemoryFactory.create(MemoryBackend.SQL, session_factory=sessionmaker(engine))
-    turn = [
-        HumanMessage("busca"),
-        tool_call("search_documents", {"query": "x"}, "t1"),
-        ToolMessage("ok", tool_call_id="t1"),
-        AIMessage("hecho"),
-    ]
-
-    await memory.add_messages(KEY, turn)
-    await memory.add_messages(KEY, [HumanMessage("otra"), AIMessage("vale")])
-
-    assert await memory.get_messages(KEY) == turn + [HumanMessage("otra"), AIMessage("vale")]
-    assert [m.content for m in await memory.get_messages(KEY, turns=1)] == ["otra", "vale"]
-    restored_call = (await memory.get_messages(KEY))[1]
-    assert restored_call.tool_calls[0]["id"] == "t1"
-
-
 def test_registry_requires_configuration():
     with pytest.raises(RuntimeError):
-        registry._require_settings()
+        registry._require_configured()

@@ -10,6 +10,33 @@ Cuando un agente tenga que crear una API con FastAPI, un agente con LangGraph, u
 - Convertirlos en **recetas** reutilizables: backend, agentes, frontend, infraestructura, tests…
 - Que un agente pueda **descubrir, leer y descargar** una receta sin tener que cargar el repositorio entero en su contexto.
 
+## Filosofía de las recetas
+
+Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
+
+- **Factories.** Un único punto construye cada pieza intercambiable: el LLM, la memoria, la autenticación, el STT o el TTS. Un proveedor desconocido lanza un error explícito, nunca un valor por defecto silencioso.
+- **Clases base y herencia.** Cada familia tiene una clase base abstracta (`BaseAgent`, `AppTool`, `Memory`…) y las implementaciones concretas solo declaran lo que las distingue.
+- **Cambiar de proveedor sin tocar código.** El proveedor o el backend se eligen en los **settings** (`.env`): `ASSISTANT_MODEL=claude-sonnet-5-5` o `MEMORY_BACKEND=sql`. La factory lee el valor y construye la implementación. Cambiar de OpenAI a Anthropic, o de memoria en RAM a Postgres, es cambiar una variable.
+- **Settings por bloques.** Hay un único `Settings` por proyecto y cada receta aporta su bloque, que ese `Settings` hereda.
+- **Costuras de test.** Todo se puede probar sin claves ni red: LLMs falsos, implementaciones en memoria e inyección por constructor.
+
+## Recetas
+
+### Disponibles
+
+| id | Categoría | Para qué | Relación |
+|---|---|---|---|
+| `project-settings` | backend | `Settings` único del backend (pydantic-settings, `.env`), `get_settings()` y composición por bloques | — |
+| `langchain-agent` | agents | Agente con `create_agent`: clase base, factory de LLM (OpenAI, Anthropic, Azure y Groq), tools, prompts YAML | usa `project-settings` |
+| `agent-memory` | agents | Memoria de conversación: backend en settings (RAM o SQL), ventana por turnos, idempotente, tests de conformidad | usa `project-settings` |
+| `langgraph-graph` | agents | Grafo de flujo fijo (router → agente \| rechazo) con salida en JSON o SSE | requiere `langchain-agent` y `agent-memory` |
+
+`requires`: hay que copiar las dos recetas. `uses`: se integra con la otra receta, pero no la trae.
+
+### Pendientes
+
+Ver la hoja de ruta. Todavía no existe receta de FastAPI, auth, RAG ni frontend.
+
 ## Conceptos
 
 | Concepto | Qué es |
@@ -71,7 +98,11 @@ y síguela en lugar de inventar una estructura.
 ## Hoja de ruta
 
 1. [x] Definir objetivo y estructura (este README y `AGENTS.md`).
-2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md`.
-3. [ ] Convertir los patrones comunes en recetas.
+2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md` (hecho: síntesis de agentes y grafos en `analysis/agentic-langgraph.md`).
+3. [ ] Convertir los patrones comunes en recetas:
+   - [x] `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph`
+   - [ ] `fastapi-base`: app, lifespan, routers, dependencias, errores
+   - [ ] `auth-verifier`: verificación de tokens con factory (Supabase / doble de test)
+   - [ ] `rag-retriever`, `voice-providers` (STT/TTS), `observability`, frontend…
 4. [ ] Implementar la CLI `copypasta`.
 5. [ ] (Opcional) Skill de Claude Code que envuelva la CLI.

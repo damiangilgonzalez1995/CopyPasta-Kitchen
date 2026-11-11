@@ -1,7 +1,8 @@
-"""Wiring boundary: the only module that knows how to build agents with the app's settings/services.
+"""Wiring boundary: the only module that knows how to build agents with the app's services.
 
 Graph nodes are `@staticmethod`s, so they get their agents from here instead of a constructor.
-The app calls `registry.configure(...)` once at startup (FastAPI `lifespan`); tests call
+Models and API keys come from the project settings (`get_llm_settings()`); the app only injects
+services with `registry.configure(...)` once at startup (FastAPI `lifespan`). Tests call
 `registry.override(...)` with agents built on fake LLMs.
 
 Agents are built lazily and cached (per language for the assistant), guarded by an asyncio.Lock
@@ -12,16 +13,14 @@ import asyncio
 from typing import Any
 
 from .agents import AssistantAgent, ClassifierAgent
-from .llm import LLMModel, LLMSettings
+from .llm import LLMModel, LLMSettings, get_llm_settings
 from .tools import ToolSet
 
 
 class AgentRegistry:
     def __init__(self) -> None:
         self._settings: LLMSettings | None = None
-        self._services: dict[str, Any] = {}
-        self._assistant_model = LLMModel.GPT_4_1_MINI
-        self._classifier_model = LLMModel.GPT_4_1_NANO
+        self._services: dict[str, Any] | None = None
         self._assistants: dict[str, AssistantAgent] = {}
         self._classifier: ClassifierAgent | None = None
         self._lock = asyncio.Lock()
@@ -29,15 +28,12 @@ class AgentRegistry:
     def configure(
         self,
         *,
-        settings: LLMSettings,
         document_search: Any,
-        assistant_model: LLMModel | None = None,
-        classifier_model: LLMModel | None = None,
+        settings: LLMSettings | None = None,
     ) -> None:
-        self._settings = settings
+        """`settings=None` -> `get_llm_settings()`. Pass one only in tests."""
+        self._settings = settings or get_llm_settings()
         self._services = {"document_search": document_search}
-        self._assistant_model = assistant_model or self._assistant_model
-        self._classifier_model = classifier_model or self._classifier_model
         self.reset()
 
     def override(
@@ -53,21 +49,22 @@ class AgentRegistry:
         self._assistants.clear()
         self._classifier = None
 
-    def _require_settings(self) -> LLMSettings:
-        if self._settings is None:
+    def _require_configured(self) -> tuple[LLMSettings, dict[str, Any]]:
+        if self._settings is None or self._services is None:
             raise RuntimeError("AgentRegistry not configured: call registry.configure(...) at startup")
-        return self._settings
+        return self._settings, self._services
 
     async def get_assistant(self, language: str) -> AssistantAgent:
         if (agent := self._assistants.get(language)) is not None:
             return agent
         async with self._lock:
             if (agent := self._assistants.get(language)) is None:
+                settings, services = self._require_configured()
                 agent = AssistantAgent(
-                    self._assistant_model,
-                    self._require_settings(),
+                    LLMModel.from_id(settings.assistant_model),
+                    settings,
                     language=language,
-                    tools=ToolSet.default(**self._services),
+                    tools=ToolSet.default(**services),
                 )
                 await agent.initialize()
                 self._assistants[language] = agent
@@ -78,7 +75,8 @@ class AgentRegistry:
             return self._classifier
         async with self._lock:
             if self._classifier is None:
-                agent = ClassifierAgent(self._classifier_model, self._require_settings())
+                settings, _ = self._require_configured()
+                agent = ClassifierAgent(LLMModel.from_id(settings.classifier_model), settings)
                 await agent.initialize()
                 self._classifier = agent
         return self._classifier

@@ -1,11 +1,11 @@
-"""Factory: `LLMModel` + settings -> LangChain chat model. The only place that knows provider classes."""
+"""Factory: `LLMModel` + project settings -> LangChain chat model. The only place that knows provider classes."""
 
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from .models import LLMModel, LLMProviderName
-from .settings import LLMSettings
+from .settings import LLMSettings, get_llm_settings
 
 _NOT_PASSED: Any = object()
 
@@ -14,7 +14,7 @@ class LLMProvider:
     @staticmethod
     def create_from_model(
         model: LLMModel,
-        settings: LLMSettings,
+        settings: LLMSettings | None = None,
         *,
         temperature: float | None = None,
         streaming: bool = False,
@@ -25,13 +25,15 @@ class LLMProvider:
         - `temperature=None` -> not sent (reasoning models reject it).
         - `reasoning_effort` not passed -> the model's default (`LLMModel.reasoning_effort`).
         - Provider packages are imported lazily: install only the ones you use.
+        - `settings=None` -> the project settings (`get_llm_settings()`); pass one only in tests.
         - Unknown provider -> ValueError. There is no silent default.
         """
         effort = model.reasoning_effort if reasoning_effort is _NOT_PASSED else reasoning_effort
-        api_key = settings.api_key_for(model.provider)
+        settings = settings or get_llm_settings()
+        api_key = settings.api_key_for(model.provider.value)
         common: dict[str, Any] = {
-            "timeout": settings.timeout_seconds,
-            "max_retries": settings.max_retries,
+            "timeout": settings.llm_timeout_seconds,
+            "max_retries": settings.llm_max_retries,
             "streaming": streaming,
         }
         if temperature is not None:

@@ -4,6 +4,7 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from agentic.agents import AgentError, AssistantAgent, ClassifierAgent, Classification
 from agentic.context import AgentContext
 from agentic.llm import LLMModel, LLMProvider, LLMSettings
+from agentic.llm import settings as llm_settings
 from agentic.prompts import load_prompt
 from agentic.tools import AppTool, ToolSet
 
@@ -100,12 +101,13 @@ def test_prompt_rejects_path_traversal():
 @pytest.mark.parametrize(
     "model, settings",
     [
-        (LLMModel.GPT_4_1_MINI, LLMSettings(openai_api_key="k")),
-        (LLMModel.CLAUDE_HAIKU_5_5, LLMSettings(anthropic_api_key="k")),
-        (LLMModel.LLAMA_3_3_70B, LLMSettings(groq_api_key="k")),
+        (LLMModel.GPT_4_1_MINI, LLMSettings(_env_file=None, openai_api_key="k")),
+        (LLMModel.CLAUDE_HAIKU_5_5, LLMSettings(_env_file=None, anthropic_api_key="k")),
+        (LLMModel.LLAMA_3_3_70B, LLMSettings(_env_file=None, groq_api_key="k")),
         (
             LLMModel.AZURE_GPT_4_1,
             LLMSettings(
+                _env_file=None,
                 azure_openai_api_key="k",
                 azure_openai_endpoint="https://example.openai.azure.com",
                 azure_openai_api_version="2024-10-21",
@@ -120,10 +122,30 @@ def test_factory_builds_every_provider(model, settings):
 
 def test_factory_fails_without_key():
     with pytest.raises(ValueError):
-        LLMProvider.create_from_model(LLMModel.GPT_4_1, LLMSettings())
+        LLMProvider.create_from_model(LLMModel.GPT_4_1, LLMSettings(_env_file=None, openai_api_key=None))
 
 
 def test_model_from_id():
     assert LLMModel.from_id("gpt-4.1-nano") is LLMModel.GPT_4_1_NANO
     with pytest.raises(ValueError):
         LLMModel.from_id("nope")
+
+
+def test_llm_settings_block_reads_env(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "from-env")
+    monkeypatch.setenv("ASSISTANT_MODEL", "gpt-4.1-nano")
+    settings = LLMSettings()
+    assert settings.openai_api_key.get_secret_value() == "from-env"
+    assert LLMModel.from_id(settings.assistant_model) is LLMModel.GPT_4_1_NANO
+
+
+def test_factory_uses_project_settings_when_none_passed(monkeypatch):
+    monkeypatch.setattr(llm_settings, "get_llm_settings", lambda: LLMSettings(_env_file=None, openai_api_key="k"))
+    monkeypatch.setattr("agentic.llm.provider.get_llm_settings", llm_settings.get_llm_settings)
+    assert LLMProvider.create_from_model(LLMModel.GPT_4_1_MINI) is not None
+
+
+def test_missing_project_settings_gives_clear_error(monkeypatch):
+    monkeypatch.setattr(llm_settings, "PROJECT_SETTINGS", "no_such_module.config")
+    with pytest.raises(RuntimeError, match="project-settings"):
+        llm_settings.get_llm_settings()

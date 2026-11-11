@@ -10,7 +10,9 @@ A subclass declares:
 - `get_prompt()`: the system prompt (usually `load_prompt(...).render(...)`).
 - `get_tools()` / `get_middleware()`: optional, empty by default.
 
-The model is chosen FROM OUTSIDE (`model` + `settings`), never hard-coded in the class.
+The model is chosen FROM OUTSIDE (`model`, usually `LLMModel.from_id(settings.<agent>_model)`),
+never hard-coded in the class. Credentials come from the project settings via `get_llm_settings()`;
+`settings=` is only for tests.
 `llm=` is the test seam: pass a fake chat model and nothing else is built.
 
 The agent is stateless: it receives the history and returns the new messages. Persisting
@@ -55,8 +57,8 @@ class BaseAgent(ABC):
         llm: BaseChatModel | None = None,
     ) -> None:
         if llm is None:
-            if model is None or settings is None:
-                raise ValueError(f"{type(self).__name__} needs `model` and `settings`, or an `llm`")
+            if model is None:
+                raise ValueError(f"{type(self).__name__} needs a `model` (or an `llm` in tests)")
             llm = LLMProvider.create_from_model(model, settings, temperature=temperature, streaming=streaming)
         self.model = model
         self.language = language

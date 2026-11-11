@@ -1,6 +1,10 @@
 """Agentic layer of the app.
 
-Rule: nothing under `agentic/` imports the app (settings singletons, DB, FastAPI).
-The app wires it from the outside (see `registry.py`): settings, services and
-caches are injected, so this package can be tested on its own with fake LLMs.
+Settings: this package brings a config BLOCK (`llm/settings.py`, `LLMSettings`) that the project
+settings inherit. It reads them through `get_llm_settings()`, the only place that knows where the
+project settings live (`PROJECT_SETTINGS`), imported lazily.
+
+Rule: nothing else under `agentic/` imports the app (DB, FastAPI, services).
+Services are injected from the outside (see `registry.py`), so this package can be tested
+on its own with fake LLMs.
 """
