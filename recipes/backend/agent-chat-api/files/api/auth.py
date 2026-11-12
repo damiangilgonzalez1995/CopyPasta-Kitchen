@@ -2,8 +2,8 @@
 
 The router never parses tokens itself. It asks the `TokenVerifier` stored in `app.state`, so the
 provider (Supabase, own JWT, API key...) is chosen when the app is built, and tests use
-`StaticTokenVerifier`. The `auth-verifier` recipe provides the real verifiers and their factory;
-until then, write one subclass here.
+`StaticTokenVerifier`. The `auth-verifier` recipe provides the real verifiers and their factory
+(and ships this same file); until then, write one subclass here.
 """
 
 from abc import ABC, abstractmethod
@@ -15,23 +15,29 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class CurrentUser(BaseModel):
     """The authenticated caller. `tenant_id` and `id` are the namespace of every conversation,
-    so they come from the token and never from the request body. Add role, email... as needed."""
+    so they come from the token and never from the request body. Add what your guards need."""
 
     model_config = ConfigDict(frozen=True)
 
     id: str = Field(min_length=1)
     tenant_id: str = Field(min_length=1)
     language: str = Field(default="es", description="Fallback language when the request has none.")
+    email: str | None = None
+    role: str | None = Field(default=None, description="For 403 checks in `ensure_turn_allowed`, if you have roles.")
 
 
 class InvalidToken(Exception):
     """The token is missing, expired, forged or belongs to nobody. Reason only for the logs."""
 
 
+class AuthUnavailable(Exception):
+    """The verifier could not decide (the identity provider did not answer). Not a 401: a 503."""
+
+
 class TokenVerifier(ABC):
     @abstractmethod
     async def verify(self, token: str) -> CurrentUser:
-        """Return the caller or raise `InvalidToken`."""
+        """Return the caller, or raise `InvalidToken` (401) / `AuthUnavailable` (503)."""
 
 
 class StaticTokenVerifier(TokenVerifier):
@@ -63,3 +69,5 @@ async def get_current_user(
         return await verifier.verify(credentials.credentials)
     except InvalidToken:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token", {"WWW-Authenticate": "Bearer"}) from None
+    except AuthUnavailable:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Authentication service unavailable") from None

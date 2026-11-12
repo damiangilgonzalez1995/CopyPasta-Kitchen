@@ -4,14 +4,14 @@
 
 Para **exponer el agente por HTTP**: el endpoint de chat que consume la interfaz (`react-agent-chat`) o cualquier cliente. Dos rutas sobre el mismo turno: `POST /agent/chat` devuelve JSON y `POST /agent/stream` devuelve SSE.
 
-**Requiere `langgraph-graph`** (y con ella `langchain-agent` y `agent-memory`): el router llama a `answer_question` y `stream_answer`. Usa `project-settings` para el bloque `AgentApiSettings`. La auth y las cuotas tienen aquí su costura: `rate-limit-quota` la rellena (sustituye `guards.py`) y `auth-verifier` (pendiente) traerá los verificadores.
+**Requiere `langgraph-graph`** (y con ella `langchain-agent` y `agent-memory`): el router llama a `answer_question` y `stream_answer`. Usa `project-settings` para el bloque `AgentApiSettings`. La auth y las cuotas tienen aquí su costura: `rate-limit-quota` la rellena (sustituye `guards.py`) y `auth-verifier` trae los verificadores reales (Supabase, JWT) con su factory.
 
 ## Qué incluye
 
 ```
 api/
   app.py                create_app(settings, token_verifier, memory, document_search): FastAPI + lifespan
-  auth.py               CurrentUser · TokenVerifier (ABC) · StaticTokenVerifier (tests) · get_current_user
+  auth.py               CurrentUser · TokenVerifier (ABC) · StaticTokenVerifier (tests) · get_current_user (401/503); el mismo archivo que auth-verifier
   agent/
     router.py           POST /agent/chat (JSON) · POST /agent/stream (SSE) · Turn (clave + contexto)
     schemas.py          ChatRequest{question, conversation_id?, language?} · ChatResponse{answer, conversation_id, message_id}
@@ -28,7 +28,7 @@ pytest.ini
 - **Los tres ids.** El cliente solo elige `conversation_id` (y si no lo manda, lo genera el servidor con `uuid4`). `tenant_id` y `user_id` salen del token. Pedir el `conversation_id` de otro no abre su hilo.
 - **Guards en orden y antes de abrir el stream:** flag apagado → 404 (que no se note que hay algo detrás), sin token → 401, `ensure_turn_allowed` → 403 o 429, pregunta vacía → 400. Una vez enviado el primer byte del SSE ya no se puede cambiar el status.
 - **`ensure_turn_allowed` es el punto de extensión** para rol, cuota y rate limit. Por defecto deja pasar. Se sustituye con `app.dependency_overrides` o editándolo. Nada que bloquee dentro de él sin `run_in_threadpool`.
-- **La auth es una clase base.** `TokenVerifier.verify(token) -> CurrentUser` vive en `app.state`, así que el proveedor se decide al construir la app y los tests usan `StaticTokenVerifier`. `auth-verifier` traerá Supabase y JWT propio con su factory.
+- **La auth es una clase base.** `TokenVerifier.verify(token) -> CurrentUser` vive en `app.state`, así que el proveedor se decide al construir la app y los tests usan `StaticTokenVerifier`. `auth-verifier` trae Supabase y JWT propio con `AuthFactory`; `AuthUnavailable` (proveedor caído) es un 503, no un 401.
 - **`done` lleva `conversation_id` y `message_id`.** `message_id` es la respuesta guardada en `agent-memory`: lo que el cliente manda al votar (`agent-feedback`). `ChatResponse` tiene los mismos campos.
 - **Persistir antes de responder.** `answer_question` y `stream_answer` escriben en memoria antes de devolver o de emitir `done`. En background abriría una carrera con varios workers (ATI lo sufrió).
 - **Errores en el stream sin detalle.** El grafo ya convierte sus fallos en `error{error_id}`; el router hace lo mismo con lo que falle fuera del grafo (memoria, red). El detalle solo va al log, con el `error_id` y el `thread_id`.
@@ -39,14 +39,14 @@ pytest.ini
 
 1. Copia `files/` al backend, encima de las recetas requeridas. Sustituye `{{app_name}}` en `api/app.py`.
 2. **Settings:** añade `AgentApiSettings` a la herencia de tu `Settings` (`core/config.py`). Variables: `AGENT_ENDPOINT_ENABLED=true`, `CHAT_MAX_QUESTION_LENGTH=4000`.
-3. **Auth:** escribe un `TokenVerifier` para tu proveedor (o copia `auth-verifier` cuando exista) y pásalo a `create_app`.
+3. **Auth:** copia `auth-verifier` y pasa `AuthFactory.create(settings)` a `create_app`, o escribe tu propio `TokenVerifier`.
 4. **`main.py`:**
 
    ```python
    settings = get_settings()
    app = create_app(
        settings=settings,
-       token_verifier=MyVerifier(settings),
+       token_verifier=AuthFactory.create(settings),
        memory=MemoryFactory.create(settings, session_factory=SessionLocal),
        document_search=my_search_service,
    )

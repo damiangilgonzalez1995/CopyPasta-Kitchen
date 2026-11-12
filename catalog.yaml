@@ -36,6 +36,13 @@ recipes:
     path: recipes/agents/agent-memory
     uses: [project-settings]
 
+  - id: auth-verifier
+    category: backend
+    description: Verificación del token Bearer con proveedor elegido en settings (Supabase por JWKS, JWT propio o doble de test) que devuelve el usuario y su tenant
+    tags: [auth, jwt, supabase, fastapi, security, python]
+    path: recipes/backend/auth-verifier
+    uses: [project-settings]
+
   - id: agent-chat-api
     category: backend
     description: Endpoints FastAPI de chat con el agente (POST /agent/chat en JSON y /agent/stream en SSE) con auth Bearer, guards y create_app

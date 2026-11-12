@@ -31,7 +31,8 @@ Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
 | `langchain-agent` | agents | Agente con `create_agent`: clase base, factory de LLM (OpenAI, Anthropic, Azure y Groq), tools, prompts YAML | usa `project-settings` |
 | `agent-memory` | agents | Memoria de conversación: backend en settings (RAM o SQL), ventana por turnos, idempotente, tests de conformidad | usa `project-settings` |
 | `langgraph-graph` | agents | Grafo de flujo fijo (router → agente \| rechazo) con salida en JSON o SSE | requiere `langchain-agent` y `agent-memory` |
-| `agent-chat-api` | backend | Endpoints FastAPI del chat: `POST /agent/chat` (JSON) y `/agent/stream` (SSE), auth Bearer, guards (404/401/403/429) y `create_app` | requiere `langgraph-graph`, usa `project-settings` |
+| `auth-verifier` | backend | Quién llama a partir del token Bearer: Supabase (JWKS), JWT propio o doble de test, elegido en settings, con 401/503 y mapeo de claims en un método | usa `project-settings` |
+| `agent-chat-api` | backend | Endpoints FastAPI del chat: `POST /agent/chat` (JSON) y `/agent/stream` (SSE), auth Bearer, guards (404/401/403/429) y `create_app` | requiere `langgraph-graph`, usa `project-settings`, `auth-verifier` |
 | `conversation-history` | backend | Historial del chat: `GET /conversations` (lista paginada con título), `GET /conversations/{id}/messages` y `DELETE`, sobre la memoria de `agent-memory` | requiere `agent-chat-api` |
 | `agent-feedback` | backend | Pulgares sobre las respuestas del agente: un voto por usuario y mensaje (upsert), comentario, deshacer y lista por conversación; backend RAM o SQL | requiere `agent-chat-api`, usa `project-settings` |
 | `rate-limit-quota` | backend | Rate limit por usuario y cuota diaria/mensual por tenant: lógica en clases base, backend RAM o SQL por settings, 429 con `code` y `GET /agent/quota` | usa `project-settings`, `agent-chat-api` |
@@ -107,10 +108,9 @@ y síguela en lugar de inventar una estructura.
 1. [x] Definir objetivo y estructura (este README y `AGENTS.md`).
 2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md` (hecho: síntesis en `analysis/agentic-langgraph.md`, `analysis/frontend.md` y `analysis/chat.md`).
 3. [ ] Convertir los patrones comunes en recetas:
-   - [x] `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`, `rate-limit-quota`, `conversation-history`, `agent-feedback`
+   - [x] `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`, `rate-limit-quota`, `conversation-history`, `agent-feedback`, `auth-verifier`
    - [x] `vite-react-base`, `react-agent-chat`
    - [ ] `fastapi-base`: app, lifespan, routers, dependencias, request id, formato de error único
-   - [ ] `auth-verifier`: `TokenVerifier` con factory (Supabase / JWT propio / doble de test)
    - [ ] `rag-retriever`, `voice-providers` (STT/TTS), `observability`
    - [ ] Frontend: auth con Supabase (`TokenProvider`), router, e2e con Playwright contra el fake
 4. [ ] Implementar la CLI `copypasta`.

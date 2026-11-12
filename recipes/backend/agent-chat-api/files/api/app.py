@@ -7,7 +7,7 @@ pieces from the project settings and passes them in. That is the test seam.
     settings = get_settings()                                   # project-settings
     app = create_app(
         settings=settings,                                      # inherits AgentApiSettings
-        token_verifier=TokenVerifierFactory.create(settings),   # auth-verifier (or your subclass)
+        token_verifier=AuthFactory.create(settings),            # auth-verifier (or your subclass)
         memory=MemoryFactory.create(settings, session_factory=SessionLocal),
         document_search=my_search_service,
     )
