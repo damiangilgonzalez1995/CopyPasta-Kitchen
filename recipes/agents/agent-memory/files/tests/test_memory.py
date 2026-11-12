@@ -7,7 +7,7 @@ from sqlalchemy.pool import StaticPool
 from agentic.memory import InMemoryMemory, MemoryBackend, MemoryFactory, MemoryKey, MemorySettings
 from agentic.memory.sql import SqlMemory, metadata
 
-from .memory_conformance import MemoryConformance
+from .memory_conformance import MemoryConformance, clock  # noqa: F401  (fixture)
 
 WINDOW = 3
 
@@ -20,14 +20,14 @@ def sqlite_session_factory():
 
 class TestInMemoryMemory(MemoryConformance):
     @pytest.fixture
-    def memory(self):
-        return InMemoryMemory(window_turns=WINDOW)
+    def memory(self, clock):
+        return InMemoryMemory(window_turns=WINDOW, clock=clock)
 
 
 class TestSqlMemory(MemoryConformance):
     @pytest.fixture
-    def memory(self):
-        return SqlMemory(sqlite_session_factory(), window_turns=WINDOW)
+    def memory(self, clock):
+        return SqlMemory(sqlite_session_factory(), window_turns=WINDOW, clock=clock)
 
 
 # --- Settings + factory: the backend is chosen in .env, not in code ---------------------------

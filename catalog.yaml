@@ -64,3 +64,10 @@ recipes:
     tags: [rate-limit, quota, api, fastapi, sql, python]
     path: recipes/backend/rate-limit-quota
     uses: [project-settings, agent-chat-api]
+
+  - id: conversation-history
+    category: backend
+    description: Endpoints FastAPI del historial del chat (listar conversaciones con título y paginación, leer mensajes y borrar) sobre la memoria del agente
+    tags: [api, fastapi, chat, history, conversations, python]
+    path: recipes/backend/conversation-history
+    requires: [agent-chat-api]

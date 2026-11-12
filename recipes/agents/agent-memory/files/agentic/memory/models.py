@@ -1,5 +1,7 @@
+from datetime import datetime
 from enum import StrEnum
 
+from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -32,3 +34,33 @@ class MemoryKey(BaseModel):
     def thread_id(self) -> str:
         """Flat id with the server namespace first (for tracing / `run_config`)."""
         return f"{self.tenant_id}:{self.user_id}:{self.conversation_id}"
+
+
+class HistoryMessage(BaseModel):
+    """A stored message with when it was stored. What `get_history` returns (for display, not for the LLM)."""
+
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
+    message: BaseMessage
+    created_at: datetime
+
+
+class ConversationSummary(BaseModel):
+    """One row of the conversation list. `title` is the first human message, trimmed."""
+
+    model_config = ConfigDict(frozen=True)
+
+    conversation_id: str
+    title: str
+    created_at: datetime
+    updated_at: datetime
+    message_count: int = Field(ge=0)
+
+
+TITLE_MAX_LENGTH = 60
+
+
+def title_from(text: str, *, max_length: int = TITLE_MAX_LENGTH) -> str:
+    """First line of the first human message, whitespace collapsed, cut with an ellipsis."""
+    flat = " ".join(str(text).split())
+    return flat if len(flat) <= max_length else flat[: max_length - 1].rstrip() + "…"

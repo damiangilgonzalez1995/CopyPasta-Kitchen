@@ -53,7 +53,7 @@ pytest.ini
    ```
 
 5. **Cuota o rate limit:** copia `rate-limit-quota` (trae `ensure_turn_allowed` y `GET /agent/quota`) o implementa el guard tú (403 o 429 con `detail={"code": ...}`; el frontend de ATI lee `code` y `resets_at`).
-6. **Más rutas** (historial, feedback): un router por grupo en `api/<grupo>/router.py`, con `get_current_user` como dependencia.
+6. **Más rutas:** `conversation-history` trae `api/conversations/` (listar, leer, borrar). Para otras (feedback…), un router por grupo en `api/<grupo>/router.py`, con `get_current_user` como dependencia, montado con `app.include_router` tras `create_app`.
 7. Para comprobarla: `pytest` con las cuatro recetas backend copiadas (66 tests en total).
 
 **Dependencias** (además de las de `langgraph-graph`): `fastapi`, `sse-starlette`, `httpx` (tests). Probado con fastapi 0.162.5 y sse-starlette 3.7.0.
