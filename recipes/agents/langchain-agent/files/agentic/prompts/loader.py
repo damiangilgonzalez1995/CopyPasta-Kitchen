@@ -16,11 +16,11 @@ Rules:
 """
 
 import logging
-from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
 import yaml
+from pydantic import BaseModel, ConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +29,9 @@ DEFAULT_LANGUAGE = "es"
 _REQUIRED = ("name", "version", "language", "system")
 
 
-@dataclass(frozen=True)
-class Prompt:
+class Prompt(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     name: str
     version: int
     language: str

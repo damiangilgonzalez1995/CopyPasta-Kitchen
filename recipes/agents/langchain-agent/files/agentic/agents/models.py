@@ -1,11 +1,10 @@
 """Agent types, the turn result and the structured answers (`response_format`)."""
 
-from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
 from langchain_core.messages import BaseMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AgentType(str, Enum):
@@ -13,8 +12,7 @@ class AgentType(str, Enum):
     CLASSIFIER = "classifier"
 
 
-@dataclass(frozen=True)
-class AgentTurn:
+class AgentTurn(BaseModel):
     """What `BaseAgent.process` returns.
 
     - `answer`: text of the last AI message ("" if the agent only returned structured output).
@@ -22,9 +20,11 @@ class AgentTurn:
     - `new_messages`: messages produced in this turn (human + AI + tools), ready to persist in memory.
     """
 
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
     answer: str
     structured: Any = None
-    new_messages: list[BaseMessage] = field(default_factory=list)
+    new_messages: list[BaseMessage] = Field(default_factory=list)
 
 
 class AgentError(RuntimeError):

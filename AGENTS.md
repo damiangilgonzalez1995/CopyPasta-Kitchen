@@ -37,6 +37,7 @@ Un recetario de plantillas (recetas) que otros agentes consultan para no inventa
 - Código genérico: sin nombres de negocio de los proyectos de origen.
 - Marcadores con el formato `{{nombre_variable}}` cuando haya que personalizar algo.
 - Deben funcionar tras copiarlas y sustituir los marcadores (incluir dependencias y config mínima).
+- **Python: Pydantic siempre.** Todo dato estructurado (estado, eventos, resultados, value objects, settings) es un `BaseModel`; para inmutabilidad, `ConfigDict(frozen=True)`. Nunca `@dataclass`, `NamedTuple` ni `TypedDict` como sustituto.
 
 ### Análisis (`analysis/`)
 

@@ -28,17 +28,17 @@ class EventProcessor:
         if kind == "on_chat_model_stream" and in_agent:
             text = getattr(raw["data"].get("chunk"), "text", "")
             text = str(text) if text else ""
-            return [SSEEvent(EventType.TOKEN, {"text": text})] if text else []
+            return [SSEEvent(type=EventType.TOKEN, data={"text": text})] if text else []
 
         if kind == "on_tool_start":
-            return [SSEEvent(EventType.TOOL_START, {"tool": raw.get("name")})]
+            return [SSEEvent(type=EventType.TOOL_START, data={"tool": raw.get("name")})]
 
         if kind == "on_tool_end":
-            return [SSEEvent(EventType.TOOL_END, {"tool": raw.get("name")})]
+            return [SSEEvent(type=EventType.TOOL_END, data={"tool": raw.get("name")})]
 
         if kind == "on_custom_event":
             if raw.get("name") == EventType.ROUTING.value:
-                return [SSEEvent(EventType.ROUTING, dict(raw.get("data") or {}))]
+                return [SSEEvent(type=EventType.ROUTING, data=dict(raw.get("data") or {}))]
             return []
 
         if kind == "on_chain_end" and not raw.get("parent_ids"):

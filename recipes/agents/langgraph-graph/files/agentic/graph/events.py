@@ -1,9 +1,10 @@
 """Events sent to the client over SSE. The frontend contract: change it with care."""
 
 import json
-from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EventType(str, Enum):
@@ -15,14 +16,15 @@ class EventType(str, Enum):
     DONE = "done"
 
 
-@dataclass(frozen=True)
-class SSEEvent:
+class SSEEvent(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     type: EventType
-    data: dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
 
     def to_sse(self) -> dict[str, str]:
         """Shape expected by `sse_starlette.EventSourceResponse`."""
         return {"event": self.type.value, "data": json.dumps(self.data, ensure_ascii=False)}
 
     def as_dict(self) -> dict[str, Any]:
-        return {"type": self.type.value, **asdict(self)["data"]}
+        return {"type": self.type.value, **self.data}

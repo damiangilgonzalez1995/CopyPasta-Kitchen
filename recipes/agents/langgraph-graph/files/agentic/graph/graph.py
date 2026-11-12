@@ -57,4 +57,4 @@ async def astream_graph(
     except Exception:
         error_id = uuid.uuid4().hex[:12]
         logger.exception("Graph stream failed (error_id=%s)", error_id)
-        yield SSEEvent(EventType.ERROR, {"error_id": error_id})
+        yield SSEEvent(type=EventType.ERROR, data={"error_id": error_id})

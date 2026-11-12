@@ -18,6 +18,7 @@ Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
 - **Clases base y herencia.** Cada familia tiene una clase base abstracta (`BaseAgent`, `AppTool`, `Memory`…) y las implementaciones concretas solo declaran lo que las distingue.
 - **Cambiar de proveedor sin tocar código.** El proveedor o el backend se eligen en los **settings** (`.env`): `ASSISTANT_MODEL=claude-sonnet-5-5` o `MEMORY_BACKEND=sql`. La factory lee el valor y construye la implementación. Cambiar de OpenAI a Anthropic, o de memoria en RAM a Postgres, es cambiar una variable.
 - **Settings por bloques.** Hay un único `Settings` por proyecto y cada receta aporta su bloque, que ese `Settings` hereda.
+- **Pydantic siempre.** Cualquier dato estructurado es un modelo Pydantic (`BaseModel`, `frozen=True` si es inmutable): se valida, se serializa y documenta sus campos. No hay `dataclass` en las recetas.
 - **Costuras de test.** Todo se puede probar sin claves ni red: LLMs falsos, implementaciones en memoria e inyección por constructor.
 
 ## Recetas
@@ -30,14 +31,15 @@ Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
 | `langchain-agent` | agents | Agente con `create_agent`: clase base, factory de LLM (OpenAI, Anthropic, Azure y Groq), tools, prompts YAML | usa `project-settings` |
 | `agent-memory` | agents | Memoria de conversación: backend en settings (RAM o SQL), ventana por turnos, idempotente, tests de conformidad | usa `project-settings` |
 | `langgraph-graph` | agents | Grafo de flujo fijo (router → agente \| rechazo) con salida en JSON o SSE | requiere `langchain-agent` y `agent-memory` |
+| `agent-chat-api` | backend | Endpoints FastAPI del chat: `POST /agent/chat` (JSON) y `/agent/stream` (SSE), auth Bearer, guards (404/401/403/429) y `create_app` | requiere `langgraph-graph`, usa `project-settings` |
 | `vite-react-base` | frontend | SPA Vite + React + TS para un backend Python: API intercambiable (http o fake) por configuración, cliente con auth y errores tipados | — |
-| `react-agent-chat` | frontend | Chat con un agente en streaming SSE: tokens, tools, cancelar, errores, Markdown seguro | requiere `vite-react-base`, usa `langgraph-graph` |
+| `react-agent-chat` | frontend | Chat con un agente en streaming SSE: tokens, tools, cancelar, errores, Markdown seguro | requiere `vite-react-base`, usa `agent-chat-api` |
 
 `requires`: hay que copiar las dos recetas. `uses`: se integra con la otra receta, pero no la trae.
 
 ### Pendientes
 
-Ver la hoja de ruta. Todavía no existe receta de FastAPI, auth ni RAG.
+Ver la hoja de ruta y `analysis/chat.md`. Todavía no existe receta de FastAPI genérica, auth, cuotas, historial de conversaciones, feedback ni RAG.
 
 ## Conceptos
 
@@ -100,12 +102,13 @@ y síguela en lugar de inventar una estructura.
 ## Hoja de ruta
 
 1. [x] Definir objetivo y estructura (este README y `AGENTS.md`).
-2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md` (hecho: síntesis en `analysis/agentic-langgraph.md` y `analysis/frontend.md`).
+2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md` (hecho: síntesis en `analysis/agentic-langgraph.md`, `analysis/frontend.md` y `analysis/chat.md`).
 3. [ ] Convertir los patrones comunes en recetas:
-   - [x] `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph`
+   - [x] `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`
    - [x] `vite-react-base`, `react-agent-chat`
-   - [ ] `fastapi-base`: app, lifespan, routers, dependencias, errores
-   - [ ] `auth-verifier`: verificación de tokens con factory (Supabase / doble de test)
+   - [ ] `fastapi-base`: app, lifespan, routers, dependencias, request id, formato de error único
+   - [ ] `auth-verifier`: `TokenVerifier` con factory (Supabase / JWT propio / doble de test)
+   - [ ] Chat: `conversation-history`, `agent-feedback`, `rate-limit-quota` (ver `analysis/chat.md`)
    - [ ] `rag-retriever`, `voice-providers` (STT/TTS), `observability`
    - [ ] Frontend: auth con Supabase (`TokenProvider`), router, e2e con Playwright contra el fake
 4. [ ] Implementar la CLI `copypasta`.

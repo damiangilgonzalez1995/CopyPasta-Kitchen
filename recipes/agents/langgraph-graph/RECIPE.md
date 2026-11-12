@@ -18,6 +18,7 @@ agentic/
     graph.py            ainvoke_graph() (JSON) · astream_graph() (SSE) · run_config() (observabilidad)
     event_processor.py  astream_events v2 → SSEEvent; guarda el estado final
     events.py           SSEEvent y EventType (token, tool_start, tool_end, routing, error, done)
+    conversation.py     answer_question() y stream_answer(): un turno completo (memoria → grafo → memoria) → TurnResult
   registry.py           frontera de cableado: construye y cachea los agentes
   conversation.py       answer_question() y stream_answer(): memoria → grafo → persistencia
 tests/
@@ -50,30 +51,7 @@ START → router_node ─┬→ agent_node ──→ END
 3. Cambia `ALLOWED_CATEGORIES` y `REJECT_TEXT` en `nodes.py`, o elimina el router si no lo necesitas.
 4. **Modelos de cada agente:** `ASSISTANT_MODEL` y `CLASSIFIER_MODEL` en el `.env`, del bloque `LLMSettings` (receta `langchain-agent`).
 5. **Memoria:** sigue el RECIPE.md de `agent-memory`. El backend se elige con `MEMORY_BACKEND` en el `.env`.
-6. **FastAPI:**
-
-   ```python
-   @asynccontextmanager
-   async def lifespan(app):
-       registry.configure(document_search=my_service)   # keys and models: project Settings (.env)
-       compile_graph()
-       app.state.memory = MemoryFactory.create(get_settings(), session_factory=SessionLocal)  # MEMORY_BACKEND
-       yield
-
-   @router.post("/agent/chat")
-   async def chat(body: ChatIn, user=Depends(current_user)):
-       key = MemoryKey(tenant_id=user.tenant_id, user_id=user.id, conversation_id=body.conversation_id)
-       ctx = AgentContext(tenant_id=user.tenant_id, user_id=user.id, language=body.language)
-       return {"answer": await answer_question(body.question, key=key, context=ctx, memory=app.state.memory)}
-
-   @router.post("/agent/stream")
-   async def stream(body: ChatIn, user=Depends(current_user)):
-       ...
-       events = stream_answer(body.question, key=key, context=ctx, memory=app.state.memory)
-       return EventSourceResponse(e.to_sse() async for e in events)   # sse-starlette
-   ```
-
-   `tenant_id` y `user_id` salen siempre del token, nunca del body.
+6. **FastAPI:** la receta `agent-chat-api` trae los endpoints (`POST /agent/chat` y `POST /agent/stream`), la auth, los guards y `create_app`. Si no la usas, el mínimo es: en el `lifespan`, `registry.configure(document_search=...)`, `compile_graph()` y `app.state.memory = MemoryFactory.create(...)`; en el endpoint, `MemoryKey` y `AgentContext` con `tenant_id` y `user_id` **del token, nunca del body**, y `answer_question(...)` o `EventSourceResponse(e.to_sse() async for e in stream_answer(...))`.
 
 **Dependencias** (además de las de `langchain-agent` y `agent-memory`): `sse-starlette` para el streaming.
 

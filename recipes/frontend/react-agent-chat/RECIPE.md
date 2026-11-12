@@ -2,7 +2,7 @@
 
 ## Cuándo usarla
 
-Para la **interfaz de chat con un agente que responde en streaming** (SSE): tokens a medida que llegan, pasos de las tools, cancelar, errores y Markdown. Consume tal cual los eventos de la receta `langgraph-graph`.
+Para la **interfaz de chat con un agente que responde en streaming** (SSE): tokens a medida que llegan, pasos de las tools, cancelar, errores y Markdown. Consume tal cual los eventos de la receta `langgraph-graph` servidos por `agent-chat-api`.
 
 **Requiere `vite-react-base`**, copiada antes, porque usa su `HttpClient`, sus `TokenProvider` y sus variables de diseño.
 
@@ -10,7 +10,7 @@ Para la **interfaz de chat con un agente que responde en streaming** (SSE): toke
 
 ```
 src/features/chat/
-  events.ts            ChatEvent: unión tipada del contrato (token, tool_start, tool_end, routing, error, done)
+  events.ts            ChatEvent: unión tipada del contrato (token, tool_start, tool_end, routing, error, done{answer, conversation_id, message_id})
   sse-parser.ts        SseParser + readSse(stream): SSE sobre fetch
   chat-api.ts          type ChatApi + createHttpChatApi(client): POST /agent/stream
   fake-chat-api.ts     createFakeChatApi(): emite los mismos eventos, sin backend
@@ -59,7 +59,7 @@ src/features/chat/
    // y en el render: <ChatView chat={chat} />
    ```
 
-3. **El endpoint del backend** está en `createHttpChatApi(client, path)` (por defecto `/agent/stream`), con el cuerpo `{question, conversation_id}`. Es el ejemplo de FastAPI de `langgraph-graph`.
+3. **El endpoint del backend** está en `createHttpChatApi(client, path)` (por defecto `/agent/stream`), con el cuerpo `{question, conversation_id}`. Es el contrato de la receta `agent-chat-api`. El `done` trae `message_id`, el id de la respuesta guardada, que es lo que se envía al votar.
 4. **Un evento nuevo:** añádelo en `ChatEvent` y `toChatEvent` (`events.ts`), trátalo en el `switch` de `use-chat.ts` y emítelo también en el fake. Cambia el `events.py` del backend al mismo tiempo.
 5. Para comprobarlo: `npm run typecheck && npm test` (40 tests junto con la base).
 

@@ -97,8 +97,9 @@ async def test_conversation_persists_and_reuses_history():
         assistant=AssistantAgent(llm=ScriptedChatModel(responses=[AIMessage("uno"), AIMessage("dos")]), tools=[]),
     )
 
-    assert await answer_question("primera", key=KEY, context=CONTEXT, memory=memory) == "uno"
-    assert await answer_question("segunda", key=KEY, context=CONTEXT, memory=memory) == "dos"
+    assert (await answer_question("primera", key=KEY, context=CONTEXT, memory=memory)).answer == "uno"
+    second = await answer_question("segunda", key=KEY, context=CONTEXT, memory=memory)
+    assert second.answer == "dos" and second.conversation_id == "conv-1"
 
     history = await memory.get_messages(KEY)
     assert [m.content for m in history] == ["primera", "uno", "segunda", "dos"]
@@ -121,6 +122,7 @@ async def test_stream_emits_routing_tokens_and_done():
     tokens = "".join(e.data["text"] for e in events if e.type is EventType.TOKEN)
     assert tokens == "hola que tal"
     assert types[-1] is EventType.DONE and events[-1].data["answer"] == "hola que tal"
+    assert events[-1].data["conversation_id"] == "conv-1"
     assert len(await memory.get_messages(KEY)) == 2
 
 

@@ -9,7 +9,7 @@ export type ChatEvent =
   | { type: 'tool_end'; tool: string }
   | { type: 'routing'; data: Record<string, unknown> }
   | { type: 'error'; errorId?: string }
-  | { type: 'done'; answer: string }
+  | { type: 'done'; answer: string; conversationId?: string; messageId?: string }
 
 type Raw = Record<string, unknown>
 
@@ -30,7 +30,12 @@ export function toChatEvent(event: string, data: unknown): ChatEvent | null {
     case 'error':
       return { type: 'error', errorId: str(raw.error_id) ? raw.error_id : undefined }
     case 'done':
-      return { type: 'done', answer: str(raw.answer) ? raw.answer : '' }
+      return {
+        type: 'done',
+        answer: str(raw.answer) ? raw.answer : '',
+        conversationId: str(raw.conversation_id) ? raw.conversation_id : undefined,
+        messageId: str(raw.message_id) ? raw.message_id : undefined,
+      }
     default:
       return null
   }

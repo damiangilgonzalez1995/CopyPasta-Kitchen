@@ -36,6 +36,14 @@ recipes:
     path: recipes/agents/agent-memory
     uses: [project-settings]
 
+  - id: agent-chat-api
+    category: backend
+    description: Endpoints FastAPI de chat con el agente (POST /agent/chat en JSON y /agent/stream en SSE) con auth Bearer, guards y create_app
+    tags: [api, fastapi, chat, sse, streaming, agent, python]
+    path: recipes/backend/agent-chat-api
+    requires: [langgraph-graph]
+    uses: [project-settings, auth-verifier, rate-limit-quota]
+
   - id: vite-react-base
     category: frontend
     description: SPA Vite + React + TypeScript para un backend Python, con API intercambiable (http o fake) por configuración y tests
@@ -48,4 +56,4 @@ recipes:
     tags: [frontend, react, chat, sse, streaming, agent]
     path: recipes/frontend/react-agent-chat
     requires: [vite-react-base]
-    uses: [langgraph-graph]
+    uses: [agent-chat-api]
