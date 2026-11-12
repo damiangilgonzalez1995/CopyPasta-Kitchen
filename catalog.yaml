@@ -71,3 +71,11 @@ recipes:
     tags: [api, fastapi, chat, history, conversations, python]
     path: recipes/backend/conversation-history
     requires: [agent-chat-api]
+
+  - id: agent-feedback
+    category: backend
+    description: Pulgares arriba/abajo sobre respuestas del agente (un voto por usuario y mensaje, comentario, deshacer, lista por conversación) con backend RAM o SQL por settings
+    tags: [api, fastapi, feedback, chat, agent, sql, python]
+    path: recipes/backend/agent-feedback
+    requires: [agent-chat-api]
+    uses: [project-settings]

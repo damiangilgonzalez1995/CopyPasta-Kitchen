@@ -29,7 +29,7 @@ pytest.ini
 - **Guards en orden y antes de abrir el stream:** flag apagado → 404 (que no se note que hay algo detrás), sin token → 401, `ensure_turn_allowed` → 403 o 429, pregunta vacía → 400. Una vez enviado el primer byte del SSE ya no se puede cambiar el status.
 - **`ensure_turn_allowed` es el punto de extensión** para rol, cuota y rate limit. Por defecto deja pasar. Se sustituye con `app.dependency_overrides` o editándolo. Nada que bloquee dentro de él sin `run_in_threadpool`.
 - **La auth es una clase base.** `TokenVerifier.verify(token) -> CurrentUser` vive en `app.state`, así que el proveedor se decide al construir la app y los tests usan `StaticTokenVerifier`. `auth-verifier` traerá Supabase y JWT propio con su factory.
-- **`done` lleva `conversation_id` y `message_id`.** `message_id` es la respuesta guardada en `agent-memory`: lo que el cliente manda al votar (futura `agent-feedback`). `ChatResponse` tiene los mismos campos.
+- **`done` lleva `conversation_id` y `message_id`.** `message_id` es la respuesta guardada en `agent-memory`: lo que el cliente manda al votar (`agent-feedback`). `ChatResponse` tiene los mismos campos.
 - **Persistir antes de responder.** `answer_question` y `stream_answer` escriben en memoria antes de devolver o de emitir `done`. En background abriría una carrera con varios workers (ATI lo sufrió).
 - **Errores en el stream sin detalle.** El grafo ya convierte sus fallos en `error{error_id}`; el router hace lo mismo con lo que falle fuera del grafo (memoria, red). El detalle solo va al log, con el `error_id` y el `thread_id`.
 - **`create_app` con todo inyectado.** No lee el entorno: `main.py` construye las piezas desde el `Settings` del proyecto y las pasa. `/docs` oculto salvo `docs=True`.
@@ -53,7 +53,7 @@ pytest.ini
    ```
 
 5. **Cuota o rate limit:** copia `rate-limit-quota` (trae `ensure_turn_allowed` y `GET /agent/quota`) o implementa el guard tú (403 o 429 con `detail={"code": ...}`; el frontend de ATI lee `code` y `resets_at`).
-6. **Más rutas:** `conversation-history` trae `api/conversations/` (listar, leer, borrar). Para otras (feedback…), un router por grupo en `api/<grupo>/router.py`, con `get_current_user` como dependencia, montado con `app.include_router` tras `create_app`.
+6. **Más rutas:** `conversation-history` trae `api/conversations/` (listar, leer, borrar) y `agent-feedback` trae `api/feedback/` (pulgares). Para otras, un router por grupo en `api/<grupo>/router.py`, con `get_current_user` como dependencia, montado con `app.include_router` tras `create_app`.
 7. Para comprobarla: `pytest` con las cuatro recetas backend copiadas (66 tests en total).
 
 **Dependencias** (además de las de `langgraph-graph`): `fastapi`, `sse-starlette`, `httpx` (tests). Probado con fastapi 0.162.5 y sse-starlette 3.7.0.

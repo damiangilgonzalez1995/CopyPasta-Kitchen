@@ -20,7 +20,7 @@ pytest.ini
 
 - **La memoria es la fuente.** `Memory.list_conversations` y `Memory.get_history` (receta `agent-memory`) hacen el trabajo; el router solo adapta. Aurora y Vera lo hacen así; una tabla aparte de conversaciones obligaría a mantenerla en cada turno.
 - **Lo ajeno es un 404, no un 403.** Todas las rutas construyen la `MemoryKey` con tenant y usuario del token, así que el id de otro no existe en tu espacio. No se revela si existe.
-- **Solo texto visible.** `MessageOut` mapea `human → user` y `ai → assistant` y descarta tool calls, resultados de tools y mensajes vacíos. En la base de datos sigue todo (el LLM lo necesita). Cada mensaje lleva su `id` almacenado: es el `message_id` que `agent-feedback` votará.
+- **Solo texto visible.** `MessageOut` mapea `human → user` y `ai → assistant` y descarta tool calls, resultados de tools y mensajes vacíos. En la base de datos sigue todo (el LLM lo necesita). Cada mensaje lleva su `id` almacenado: es el `message_id` que `agent-feedback` vota.
 - **Título = primer mensaje humano recortado** (aurora). Se calcula en la memoria (`title_from`), no en el router, para que SQL lo haga en una consulta.
 - **Orden por última actividad**, con `limit` (máx. 200) y `offset` como aurora. Sin total: ningún proyecto de origen lo devuelve y la barra lateral no lo necesita.
 - **Borrar es `Memory.clear`.** No existe en los proyectos de origen; se añade porque el contrato de memoria ya lo tenía ("el usuario pide olvidar"). 204, y 404 si no era tuya. Renombrar queda fuera: requeriría guardar el título.
