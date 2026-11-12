@@ -4,7 +4,7 @@
 
 Para **exponer el agente por HTTP**: el endpoint de chat que consume la interfaz (`react-agent-chat`) o cualquier cliente. Dos rutas sobre el mismo turno: `POST /agent/chat` devuelve JSON y `POST /agent/stream` devuelve SSE.
 
-**Requiere `langgraph-graph`** (y con ella `langchain-agent` y `agent-memory`): el router llama a `answer_question` y `stream_answer`. Usa `project-settings` para el bloque `AgentApiSettings`. La auth y las cuotas tienen aquí su costura; las recetas `auth-verifier` y `rate-limit-quota` (pendientes) la rellenan.
+**Requiere `langgraph-graph`** (y con ella `langchain-agent` y `agent-memory`): el router llama a `answer_question` y `stream_answer`. Usa `project-settings` para el bloque `AgentApiSettings`. La auth y las cuotas tienen aquí su costura: `rate-limit-quota` la rellena (sustituye `guards.py`) y `auth-verifier` (pendiente) traerá los verificadores.
 
 ## Qué incluye
 
@@ -52,7 +52,7 @@ pytest.ini
    )
    ```
 
-5. **Cuota o rate limit:** implementa `ensure_turn_allowed` (403 o 429 con `detail={"code": ...}`; el frontend de ATI lee `code` y `resets_at`).
+5. **Cuota o rate limit:** copia `rate-limit-quota` (trae `ensure_turn_allowed` y `GET /agent/quota`) o implementa el guard tú (403 o 429 con `detail={"code": ...}`; el frontend de ATI lee `code` y `resets_at`).
 6. **Más rutas** (historial, feedback): un router por grupo en `api/<grupo>/router.py`, con `get_current_user` como dependencia.
 7. Para comprobarla: `pytest` con las cuatro recetas backend copiadas (66 tests en total).
 

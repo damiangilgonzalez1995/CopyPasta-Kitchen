@@ -57,3 +57,10 @@ recipes:
     path: recipes/frontend/react-agent-chat
     requires: [vite-react-base]
     uses: [agent-chat-api]
+
+  - id: rate-limit-quota
+    category: backend
+    description: Rate limit por usuario y cuota diaria/mensual por tenant con la lógica en clases base, almacenamiento intercambiable (RAM o SQL) y 429 con código
+    tags: [rate-limit, quota, api, fastapi, sql, python]
+    path: recipes/backend/rate-limit-quota
+    uses: [project-settings, agent-chat-api]

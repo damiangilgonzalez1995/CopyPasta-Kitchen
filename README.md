@@ -32,6 +32,7 @@ Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
 | `agent-memory` | agents | Memoria de conversación: backend en settings (RAM o SQL), ventana por turnos, idempotente, tests de conformidad | usa `project-settings` |
 | `langgraph-graph` | agents | Grafo de flujo fijo (router → agente \| rechazo) con salida en JSON o SSE | requiere `langchain-agent` y `agent-memory` |
 | `agent-chat-api` | backend | Endpoints FastAPI del chat: `POST /agent/chat` (JSON) y `/agent/stream` (SSE), auth Bearer, guards (404/401/403/429) y `create_app` | requiere `langgraph-graph`, usa `project-settings` |
+| `rate-limit-quota` | backend | Rate limit por usuario y cuota diaria/mensual por tenant: lógica en clases base, backend RAM o SQL por settings, 429 con `code` y `GET /agent/quota` | usa `project-settings`, `agent-chat-api` |
 | `vite-react-base` | frontend | SPA Vite + React + TS para un backend Python: API intercambiable (http o fake) por configuración, cliente con auth y errores tipados | — |
 | `react-agent-chat` | frontend | Chat con un agente en streaming SSE: tokens, tools, cancelar, errores, Markdown seguro | requiere `vite-react-base`, usa `agent-chat-api` |
 
@@ -104,11 +105,11 @@ y síguela en lugar de inventar una estructura.
 1. [x] Definir objetivo y estructura (este README y `AGENTS.md`).
 2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md` (hecho: síntesis en `analysis/agentic-langgraph.md`, `analysis/frontend.md` y `analysis/chat.md`).
 3. [ ] Convertir los patrones comunes en recetas:
-   - [x] `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`
+   - [x] `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`, `rate-limit-quota`
    - [x] `vite-react-base`, `react-agent-chat`
    - [ ] `fastapi-base`: app, lifespan, routers, dependencias, request id, formato de error único
    - [ ] `auth-verifier`: `TokenVerifier` con factory (Supabase / JWT propio / doble de test)
-   - [ ] Chat: `conversation-history`, `agent-feedback`, `rate-limit-quota` (ver `analysis/chat.md`)
+   - [ ] Chat: `conversation-history`, `agent-feedback` (ver `analysis/chat.md`)
    - [ ] `rag-retriever`, `voice-providers` (STT/TTS), `observability`
    - [ ] Frontend: auth con Supabase (`TokenProvider`), router, e2e con Playwright contra el fake
 4. [ ] Implementar la CLI `copypasta`.
