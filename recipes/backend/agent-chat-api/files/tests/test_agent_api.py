@@ -188,7 +188,10 @@ async def test_language_comes_from_body_then_from_user():
     assert seen == ["fr", "en"]
 
 
-async def test_docs_hidden_by_default():
+async def test_docs_hidden_by_default_and_health_and_request_id_come_from_fastapi_base():
     app, _ = make_app()
     async with client(app) as c:
         assert (await c.get("/docs")).status_code == 404
+        assert (await c.get("/health")).json() == {"status": "ok"}
+        refused = await c.post("/agent/chat", json={"question": "hola"})
+    assert refused.status_code == 401 and refused.headers["x-request-id"]
