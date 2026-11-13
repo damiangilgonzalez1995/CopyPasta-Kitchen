@@ -77,6 +77,8 @@ pytest.ini
    turn = await agent.process("pregunta", context=AgentContext(tenant_id=..., user_id=...), history=[...])
    ```
 
+   `my_service` es cualquier objeto con `search(tenant_id, query, limit)`: la receta `rag-retriever` trae uno real (`DocumentSearchService`) sobre Qdrant o pgvector.
+
 **Dependencias** (probado con langchain 1.4.9, langgraph 1.2.20 y langchain-core 1.7.7):
 
 ```

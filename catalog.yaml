@@ -15,6 +15,13 @@ recipes:
     tags: [settings, config, env, pydantic, python]
     path: recipes/backend/project-settings
 
+  - id: fastapi-base
+    category: backend
+    description: Base de cualquier API FastAPI con request id, 500 sin internals, errores con code, CORS por settings, /health y docs solo en desarrollo
+    tags: [api, fastapi, errors, request-id, cors, python]
+    path: recipes/backend/fastapi-base
+    uses: [project-settings]
+
   - id: langchain-agent
     category: agents
     description: Agente LLM con create_agent (LangChain v1), clase base, factory multi-proveedor, tools, prompts YAML y tests sin API keys
@@ -48,8 +55,15 @@ recipes:
     description: Endpoints FastAPI de chat con el agente (POST /agent/chat en JSON y /agent/stream en SSE) con auth Bearer, guards y create_app
     tags: [api, fastapi, chat, sse, streaming, agent, python]
     path: recipes/backend/agent-chat-api
-    requires: [langgraph-graph]
+    requires: [fastapi-base, langgraph-graph]
     uses: [project-settings, auth-verifier, rate-limit-quota]
+
+  - id: rag-retriever
+    category: backend
+    description: Búsqueda en los documentos del tenant para el agente (trocear, embeber, store RAM/Qdrant/pgvector por settings, indexado idempotente) y el servicio de la tool search_documents
+    tags: [rag, retrieval, embeddings, qdrant, pgvector, vector-store, agent, python]
+    path: recipes/backend/rag-retriever
+    uses: [project-settings, langchain-agent]
 
   - id: vite-react-base
     category: frontend
