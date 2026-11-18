@@ -28,13 +28,13 @@ pytest.ini
 
 ## Decisiones
 
-- **Un voto por (tenant, usuario, mensaje), upsert.** Como ATI: votar otra vez cambia `rating` y `comment` y conserva `created_at`. La respuesta dice `created` o `updated`.
-- **La propiedad se comprueba en la memoria, no en la tabla de votos.** El mensaje debe ser una respuesta del agente (`ai` con texto) dentro de una conversación del propio usuario; se lee con `Memory.get_history`. Por eso el voto lleva `conversation_id` además de `message_id` (ATI solo necesita el segundo porque consulta su tabla de mensajes por id; aquí la memoria es un contrato, no una tabla).
-- **Un solo 404.** Mensaje inexistente, de otro usuario o tenant, humano, o una tool call: la misma respuesta, para no filtrar qué existe (ATI).
+- **Un voto por (tenant, usuario, mensaje), upsert.** Votar otra vez cambia `rating` y `comment` y conserva `created_at`. La respuesta dice `created` o `updated`.
+- **La propiedad se comprueba en la memoria, no en la tabla de votos.** El mensaje debe ser una respuesta del agente (`ai` con texto) dentro de una conversación del propio usuario; se lee con `Memory.get_history`. Por eso el voto lleva `conversation_id` además de `message_id` (con una tabla de mensajes propia bastaría el segundo; aquí la memoria es un contrato, no una tabla).
+- **Un solo 404.** Mensaje inexistente, de otro usuario o tenant, humano, o una tool call: la misma respuesta, para no filtrar qué existe.
 - **Mismos guards que el chat:** agente apagado → 404, sin token → 401. No pasa por el rate limit del turno: votar no gasta LLM.
 - **Backend en settings** (`FEEDBACK_BACKEND=in_memory | sql`), sin valor por defecto, como las demás recetas. La tabla no lleva clave foránea a los mensajes porque la receta no conoce tus nombres de tabla; añádela en tu migración si quieres borrado en cascada.
-- **`GET /agent/feedback?conversation_id=`** devuelve los votos del usuario en esa conversación para restaurar los pulgares al recargar. ATI no lo tiene (el estado vive solo en el cliente); se añade porque sin él el historial de `conversation-history` llega sin votos.
-- **`rating` como `Literal[-1, 1]`:** Pydantic rechaza cualquier otro valor con 422, no hace falta el 400 manual de ATI.
+- **`GET /agent/feedback?conversation_id=`** devuelve los votos del usuario en esa conversación para restaurar los pulgares al recargar. Es nuevo (en producción el estado vivía solo en el cliente); se añade porque sin él el historial de `conversation-history` llega sin votos.
+- **`rating` como `Literal[-1, 1]`:** Pydantic rechaza cualquier otro valor con 422, no hace falta un 400 manual.
 - **Reloj inyectable** y async en todos los backends, igual que `agent-memory` y `rate-limit-quota`.
 
 ## Cómo adaptarla
@@ -59,5 +59,5 @@ pytest.ini
 
 ## Origen
 
-- `POST /api/agent/feedback {message_id, rating ±1}` con UPSERT por (mensaje, usuario), `created_or_updated` en la respuesta, comprobación de propiedad (tenant, usuario y `role = 'ai'`) con un único 404, flag del agente → 404 antes que nada, tabla `agent_feedback` con `UNIQUE(agent_message_id, user_id)` y `CHECK(rating IN (-1, 1))`, columna `comment` reservada: ATI_PLATFORM (`api/routes/agent_feedback.py`, `models/agent_feedback.py`).
-- Store como clase base con backends por settings, `conversation_id` en el voto para comprobar la propiedad contra la memoria, `GET` por conversación y `DELETE` para deshacer: nuevos.
+- Probado en producción: `POST /agent/feedback {message_id, rating ±1}` con UPSERT por (mensaje, usuario), `created_or_updated` en la respuesta, comprobación de propiedad (tenant, usuario y `role = 'ai'`) con un único 404, flag del agente → 404 antes que nada, tabla `agent_feedback` con `UNIQUE` por mensaje y usuario y `CHECK(rating IN (-1, 1))`, columna `comment` reservada.
+- Nuevo en esta receta: store como clase base con backends por settings, `conversation_id` en el voto para comprobar la propiedad contra la memoria, `GET` por conversación y `DELETE` para deshacer.

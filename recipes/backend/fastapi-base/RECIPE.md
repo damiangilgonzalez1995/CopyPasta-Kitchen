@@ -23,13 +23,13 @@ pytest.ini
 
 ## Decisiones
 
-- **`build_app` y `create_app` separados.** `build_app` es la fontanería, igual en todos los proyectos; `create_app` es del proyecto: servicios en `app.state`, lifespan, routers. Las recetas que montan algo encima (`agent-chat-api`) traen su `create_app` y llaman a `build_app`. Nada lee el entorno: todo se inyecta (Vera).
-- **El cuerpo de error sigue siendo `{"detail": ...}`.** Vera usa un sobre propio `{error: {code, message, request_id}}`, pero los frontends de aurora y ATI (y `react-agent-chat`) leen `detail`, y FastAPI ya lo produce para 401, 404 y 422. La convención es: cuando el cliente tiene que distinguir casos, `detail` es un objeto con `code` (`ApiError`); si no, una cadena. Los 500 inesperados son `{"detail": {"code": "internal_error", "request_id"}}`.
-- **El id de la petición lo pone el cliente si quiere** (ATI): se respeta `X-Request-ID` si es `[A-Za-z0-9._-]{1,64}`; si no, se genera. Va en `request.state`, en un contextvar para los logs y en la respuesta, también en los errores y en CORS (`expose_headers`).
-- **500 sin internals, con el mismo id en el log** (Vera). El middleware captura lo que nadie manejó, hace `logger.exception` y responde con `code` e id. El cliente nunca ve el traceback; soporte cruza el id con el log.
-- **CORS solo si hay orígenes** y añadido primero para que quede el más externo: el preflight se responde antes de pasar por nada (ATI). `allow_credentials=True` con lista explícita, nunca `*`.
+- **`build_app` y `create_app` separados.** `build_app` es la fontanería, igual en todos los proyectos; `create_app` es del proyecto: servicios en `app.state`, lifespan, routers. Las recetas que montan algo encima (`agent-chat-api`) traen su `create_app` y llaman a `build_app`. Nada lee el entorno: todo se inyecta.
+- **El cuerpo de error sigue siendo `{"detail": ...}`.** Un sobre propio `{error: {code, message, request_id}}` es una opción válida, pero los frontends existentes (y `react-agent-chat`) leen `detail`, y FastAPI ya lo produce para 401, 404 y 422. La convención es: cuando el cliente tiene que distinguir casos, `detail` es un objeto con `code` (`ApiError`); si no, una cadena. Los 500 inesperados son `{"detail": {"code": "internal_error", "request_id"}}`.
+- **El id de la petición lo pone el cliente si quiere:** se respeta `X-Request-ID` si es `[A-Za-z0-9._-]{1,64}`; si no, se genera. Va en `request.state`, en un contextvar para los logs y en la respuesta, también en los errores y en CORS (`expose_headers`).
+- **500 sin internals, con el mismo id en el log.** El middleware captura lo que nadie manejó, hace `logger.exception` y responde con `code` e id. El cliente nunca ve el traceback; soporte cruza el id con el log.
+- **CORS solo si hay orígenes** y añadido primero para que quede el más externo: el preflight se responde antes de pasar por nada. `allow_credentials=True` con lista explícita, nunca `*`.
 - **`/health` sin dependencias.** Es liveness. Un readiness que toque la base de datos es otra ruta con sus timeouts; si no, la API cae con la base de datos.
-- **`/docs` y `/openapi.json` apagados por defecto** (ATI, Vera): publican el mapa completo de la API. `DOCS_ENABLED=true` en local.
+- **`/docs` y `/openapi.json` apagados por defecto:** publican el mapa completo de la API. `DOCS_ENABLED=true` en local.
 - **`logging` estándar con el id en el formato.** Un solo sitio (`configure_logging`) para cambiar a JSON o structlog cuando haya colector.
 
 ## Cómo adaptarla
@@ -53,7 +53,5 @@ pytest.ini
 
 ## Origen
 
-- Middleware que etiqueta la petición con `request_id`, lo pone en el log y convierte cualquier fallo en un JSON sin internals; `create_app(settings)` con servicios en `app.state`; `/docs` solo en local; `/health` sin dependencias: Vera-Symplia (`api/error_handlers.py`, `api/app.py`, `routers/health.py`).
-- `X-Request-ID` del cliente respetado y devuelto, CORS antes del resto de middlewares, docs apagados fuera de desarrollo: ATI_PLATFORM (`api/middlewares/request_context.py`, `main.py`).
-- `CORS_ALLOWED_ORIGINS` separado por comas desde settings: aurora (`api/main.py`).
-- `detail` con `code` como formato único (en vez del sobre `{error: ...}` de Vera) y `ApiError`: nuevos, para conservar el contrato que ya leen los frontends.
+- Probado en producción: middleware que etiqueta la petición con `request_id`, lo pone en el log y convierte cualquier fallo en un JSON sin internals; `create_app(settings)` con servicios en `app.state`; `/health` sin dependencias; `X-Request-ID` del cliente respetado y devuelto; CORS antes del resto de middlewares; docs apagados fuera de desarrollo; orígenes CORS separados por comas desde settings.
+- Nuevo en esta receta: `detail` con `code` como formato único (en vez del sobre `{error: ...}`) y `ApiError`, para conservar el contrato que ya leen los frontends.

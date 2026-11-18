@@ -37,6 +37,4 @@ pytest.ini
 
 ## Origen
 
-- `Settings(BaseSettings)` con `.env` en la raíz del backend: los cuatro proyectos (ATI_PLATFORM en `app/core/config.py`, aurora y Vera-Symplia en `config/settings.py`, rag_tool_upv en `core/settings.py`).
-- `get_settings()` con `lru_cache`: aurora. Singleton de módulo: ATI_PLATFORM y rag_tool_upv.
-- Composición heredando bloques (`Settings(ObservabilitySettings)`): ATI_PLATFORM.
+- Probado en producción: `Settings(BaseSettings)` con `.env` en la raíz del backend, `get_settings()` con `lru_cache` (en otros proyectos, singleton de módulo) y composición heredando bloques (`Settings(ObservabilitySettings)`).

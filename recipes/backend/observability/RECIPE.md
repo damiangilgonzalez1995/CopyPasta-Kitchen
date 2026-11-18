@@ -25,14 +25,14 @@ pytest.ini
 
 ## Decisiones
 
-- **El core no sabe quién observa.** `agentic/` solo recibe un `config` (`callbacks`, `metadata`, `tags`, `run_name`); quien lo construye es `Tracer.begin(...)` en la capa de la API (ATI `agent_run_config`, Vera `GraphAgent`). Los nodos nunca importan el SDK.
-- **Un `Tracer` por proceso, un `TurnTrace` por turno** (Vera). `begin` construye el handler del proveedor para ese run con el `thread_id` del servidor (tenant como namespace, como `MemoryKey.thread_id`), el tenant, el usuario y el `X-Request-ID`: la traza y la línea de log se cruzan por el mismo id, cosa que ni ATI ni Vera llegaron a hacer.
-- **Apagado por defecto y fail-open.** `TRACING_PROVIDER=none` no construye nada. Si el SDK falta o la configuración es mala, la factory deja `NullTracer` y un warning; si el handler falla al construirse, el turno corre sin traza; si el flush falla o tarda, se corta con timeout (`TRACING_FLUSH_TIMEOUT_SECONDS`). En el log solo va la clase del error: el texto puede llevar la clave (Vera).
-- **Tokens y coste sin depender del proveedor.** `UsageCollector` lee `usage_metadata` de cada respuesta del chat model, con `input_token_details.cache_read`. El coste es `(entrada − caché)·p_in + caché·p_caché + salida·p_out` por millón (ATI y Vera). Los precios los pone el proyecto (`Prices`); un modelo sin precio da `cost_usd=None`, nunca 0 (Vera): un coste desconocido no se reporta como gratis.
-- **`TurnSummary` es el dato, la línea de log es la vista.** Lo que ATI guarda en `ai_spend_daily` o Vera en filas `trace` sale de aquí: `summary.model_dump()` a tu tabla de gasto, a `rate-limit-quota` (`QuotaUnit.TOKENS`) o a la página de admin.
-- **LangSmith explícito, no por variables de entorno.** `LANGSMITH_TRACING=true` en el entorno traza cualquier LangChain del proceso, también en tests (aurora, rag_tool_upv). Aquí es un `LangChainTracer` con `Client` propio, solo en los runs que pasan por `begin`.
-- **Sin spans manuales ni filtrado del ruido de LangGraph.** Vera filtra los nodos que no aportan y traza a mano el clasificador y la búsqueda; es una subclase de `Tracer` (`_callbacks` devolviendo tu handler) y no parte de esta receta.
-- **Sin feedback ni prompts en el proveedor.** Ninguno de los cuatro proyectos manda los pulgares como score, y los prompts viven en YAML (`langchain-agent`). Si quieres el score, `tracer.trace_id` del `TurnSummary` es lo que hay que guardar junto al `message_id`.
+- **El core no sabe quién observa.** `agentic/` solo recibe un `config` (`callbacks`, `metadata`, `tags`, `run_name`); quien lo construye es `Tracer.begin(...)` en la capa de la API. Los nodos nunca importan el SDK.
+- **Un `Tracer` por proceso, un `TurnTrace` por turno.** `begin` construye el handler del proveedor para ese run con el `thread_id` del servidor (tenant como namespace, como `MemoryKey.thread_id`), el tenant, el usuario y el `X-Request-ID`: la traza y la línea de log se cruzan por el mismo id, algo que los proyectos de origen no llegaban a hacer.
+- **Apagado por defecto y fail-open.** `TRACING_PROVIDER=none` no construye nada. Si el SDK falta o la configuración es mala, la factory deja `NullTracer` y un warning; si el handler falla al construirse, el turno corre sin traza; si el flush falla o tarda, se corta con timeout (`TRACING_FLUSH_TIMEOUT_SECONDS`). En el log solo va la clase del error: el texto puede llevar la clave.
+- **Tokens y coste sin depender del proveedor.** `UsageCollector` lee `usage_metadata` de cada respuesta del chat model, con `input_token_details.cache_read`. El coste es `(entrada − caché)·p_in + caché·p_caché + salida·p_out` por millón. Los precios los pone el proyecto (`Prices`); un modelo sin precio da `cost_usd=None`, nunca 0: un coste desconocido no se reporta como gratis.
+- **`TurnSummary` es el dato, la línea de log es la vista.** Lo que un proyecto guarda en su tabla de gasto diario o en filas de traza sale de aquí: `summary.model_dump()` a tu tabla de gasto, a `rate-limit-quota` (`QuotaUnit.TOKENS`) o a la página de admin.
+- **LangSmith explícito, no por variables de entorno.** `LANGSMITH_TRACING=true` en el entorno traza cualquier LangChain del proceso, también en tests. Aquí es un `LangChainTracer` con `Client` propio, solo en los runs que pasan por `begin`.
+- **Sin spans manuales ni filtrado del ruido de LangGraph.** Filtrar los nodos que no aportan o trazar a mano un clasificador o una búsqueda es una subclase de `Tracer` (`_callbacks` devolviendo tu handler) y no parte de esta receta.
+- **Sin feedback ni prompts en el proveedor.** Los pulgares no se mandan como score, y los prompts viven en YAML (`langchain-agent`). Si quieres el score, `tracer.trace_id` del `TurnSummary` es lo que hay que guardar junto al `message_id`.
 
 ## Cómo adaptarla
 
@@ -64,8 +64,5 @@ pytest.ini
 
 ## Origen
 
-- Tracer construido una vez, import perezoso del SDK, apagado si falta la configuración, `[]` con warning si falla, y `thread_id` del servidor en `metadata`: ATI_PLATFORM (`agentic/observability.py`, `core/config_observability.py` con `Settings(ObservabilitySettings)`).
-- `Tracer.begin(...) -> TurnTrace` con `callbacks`, `metadata`, `finish` y `flush` con timeout en hilo; `NullTracer`; cada llamada al SDK en `try/except` y solo la clase del error al log; coste `None` si el modelo no tiene precio; `Langfuse` cliente por proceso y handler por turno: Vera-Symplia (`observability/turn_trace.py`, `langfuse_tracer.py`, `langfuse_turn.py`, `core/spend.py`).
-- Tokens desde `usage_metadata` con `cache_read` y coste por millón; registro de gasto que nunca propaga errores: ATI (`services/ai_spend.py`) y Vera (`worker/trace_collector.py`).
-- LangSmith solo por variables de entorno, sin tests que lo apaguen: aurora y rag_tool_upv (razón para el `LangChainTracer` explícito).
-- `request_id` en la traza: nuevo; ATI y Vera lo tienen en el log pero no lo cruzan con la traza.
+- Probado en producción: tracer construido una vez con import perezoso del SDK, apagado si falta la configuración y `[]` con warning si falla; `thread_id` del servidor en `metadata`; `Tracer.begin(...) -> TurnTrace` con `callbacks`, `metadata`, `finish` y `flush` con timeout en hilo; `NullTracer`; cada llamada al SDK en `try/except` y solo la clase del error al log; coste `None` si el modelo no tiene precio; cliente `Langfuse` por proceso y handler por turno; tokens desde `usage_metadata` con `cache_read` y coste por millón; registro de gasto que nunca propaga errores.
+- Nuevo en esta receta: `request_id` en la traza (en producción estaba en el log pero no se cruzaba con la traza) y `LangChainTracer` explícito en lugar de LangSmith por variables de entorno, que trazaba también en tests.

@@ -39,23 +39,23 @@ src/
 
 ## Decisiones
 
-- **Vite + React y no Next.js.** El backend ya es Python. Next añadiría un servidor Node en medio, que es lo que hace aurora con sus `app/api/*/route.ts`.
-- **La API es un tipo con dos implementaciones** (patrón de Vera-Symplia). `Api` define el contrato, y `createHttpApi` y `createFakeApi` lo cumplen. El fake usa `satisfies Api`, así que el compilador avisa si le falta un método. Ningún componente llama a `fetch`.
+- **Vite + React y no Next.js.** El backend ya es Python. Next añadiría un servidor Node en medio.
+- **La API es un tipo con dos implementaciones.** `Api` define el contrato, y `createHttpApi` y `createFakeApi` lo cumplen. El fake usa `satisfies Api`, así que el compilador avisa si le falta un método. Ningún componente llama a `fetch`.
 - **El backend se elige en la configuración.** `VITE_API_MODE=http|fake` y `makeApi` construye la implementación. Pasar a fake (para una demo, un e2e o trabajar sin backend) es cambiar una variable: `npm run dev:fake`. Un valor desconocido lanza un error, nunca un valor por defecto silencioso. El fake se carga con `import()`, así que es un chunk aparte que la app en modo `http` nunca descarga.
 - **Los servicios llegan por contexto** (`useApp()`), no importando singletons. Así los tests montan los mismos componentes con un fake.
 - **Cliente HTTP inyectable.** `fetcher` y `tokens` entran por opciones, así que se prueba sin red.
-  - En un 401 renueva el token una sola vez y reintenta (como aurora y Vera). Si sigue fallando, llama a `onSessionExpired`.
+  - En un 401 renueva el token una sola vez y reintenta. Si sigue fallando, llama a `onSessionExpired`.
   - Errores: `ApiError(status, code)` lee tanto `{"error": {"code"}}` como el `{"detail"}` de FastAPI. `NetworkError` cubre el caso sin conexión o un 5xx sin cuerpo.
   - Cancelar no se considera un error.
 - **La auth queda detrás de `TokenProvider`.** Supabase, un JWT propio o nada: se cambia sin tocar el cliente. Hay un ejemplo con Supabase en el propio archivo.
 - **El proxy de Vite** reenvía `/api` al backend: en desarrollo no hay CORS y el SSE pasa sin cambios. En producción, sirve el frontend en el mismo dominio que la API o cambia `VITE_API_URL`.
-- **CSS con variables de diseño, sin framework.** Hay un test que comprueba el contraste WCAG AA de los pares texto/fondo (lo hace Vera).
-- **Sin router ni librería de estado.** No había un patrón común: Vera tiene un router hecho a mano con el hash, ATI usa el de Angular y aurora el de Next. Si lo necesitas, añade `react-router`.
+- **CSS con variables de diseño, sin framework.** Hay un test que comprueba el contraste WCAG AA de los pares texto/fondo.
+- **Sin router ni librería de estado.** No había un patrón común en los proyectos de origen. Si lo necesitas, añade `react-router`.
 
 ## Cómo adaptarla
 
 1. Copia `files/` a `frontend/`. Sustituye `{{app_name}}` en `package.json`, `index.html` y `src/config.ts`. Después ejecuta `npm install`.
-2. **Endpoints:** para añadir uno, pon el método en `Api` (`api/api.ts`), su tipo en `types.ts` y su implementación en `http-api.ts` y en `fake/fake-api.ts`. Si crecen mucho, sepáralos por grupos, como Vera: `http-api.users.ts` devuelve un `Pick<Api, ...>`.
+2. **Endpoints:** para añadir uno, pon el método en `Api` (`api/api.ts`), su tipo en `types.ts` y su implementación en `http-api.ts` y en `fake/fake-api.ts`. Si crecen mucho, sepáralos por grupos: `http-api.users.ts` devuelve un `Pick<Api, ...>`.
 3. **Auth:** escribe tu `TokenProvider` y pásalo en `main.tsx`. Que `onSessionExpired` lleve al login.
 4. **Pantallas:** en `screens/` o en `features/<nombre>/`. Usa `useApp()` y `useLoad()`.
 5. **Estilos:** cambia los valores de `tokens.css`. Si añades pares de color, inclúyelos en `tokens.test.ts`.
@@ -65,6 +65,5 @@ src/
 
 ## Origen
 
-- Interfaz `Api` con implementaciones HTTP y falsa, elegida en el arranque y con el fake cargado por `import()`; servicios por contexto; cliente con dependencias inyectadas y renovación del token en 401; `ApiError` y `NetworkError`; `useLoad`; variables de diseño con test de contraste; proxy de Vite: Vera-Symplia.
-- Renovar el token una vez en 401 y reintentar: aurora (`fetchWithAuth`).
-- `TokenProvider` y el error por modo desconocido: nuevos, siguiendo la regla de no tener valores por defecto de los backends Python.
+- Probado en producción: interfaz `Api` con implementaciones HTTP y falsa, elegida en el arranque y con el fake cargado por `import()`; servicios por contexto; cliente con dependencias inyectadas que renueva el token una vez en 401 y reintenta; `ApiError` y `NetworkError`; `useLoad`; variables de diseño con test de contraste; proxy de Vite.
+- Nuevo en esta receta: `TokenProvider` y el error por modo desconocido, siguiendo la regla de no tener valores por defecto de los backends Python.

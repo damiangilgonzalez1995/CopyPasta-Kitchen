@@ -1,6 +1,6 @@
 """The one place that builds the `Tracer` the settings name. Never raises: a provider that cannot
 be built (missing package, bad config) logs a warning and becomes `NullTracer`, so the app starts
-and the turns run without traces (ATI, Vera)."""
+and the turns run without traces."""
 
 import logging
 

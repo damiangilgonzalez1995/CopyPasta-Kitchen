@@ -28,8 +28,8 @@ src/features/chat/
 
 ## Decisiones
 
-- **`fetch` POST + `body.getReader()`, nunca `EventSource`.** `EventSource` solo hace GET y no admite cabecera `Authorization` (aurora y ATI hacen lo mismo).
-- **Parser robusto.** Partimos de ATI, que tiene 35 tests, y añadimos lo que no trataba ningún proyecto:
+- **`fetch` POST + `body.getReader()`, nunca `EventSource`.** `EventSource` solo hace GET y no admite cabecera `Authorization`.
+- **Parser robusto.** Partimos de un parser probado en producción y añadimos lo que no trataba ningún proyecto de origen:
   - Guarda en un buffer la línea cortada entre chunks.
   - Acepta CRLF, que es lo que envía sse-starlette, y `data:` con o sin espacio.
   - Une las líneas de `data:` multilínea con `\n`, como dice la especificación.
@@ -38,9 +38,9 @@ src/features/chat/
 - **Mismo patrón de dos implementaciones que la base:** `ChatApi` es el tipo, y la versión HTTP y la falsa lo cumplen. El fake emite la misma secuencia que el backend real.
 - **Estado del chat.**
   - Mensaje del asistente vacío desde el principio, porque `tool_start` puede llegar antes que el primer token. Los tools van como pasos con estado (`running`, `done`, `error`), y los que siguen abiertos al terminar pasan a `error`.
-  - Si el stream termina sin `done`, se trata como un fallo (ATI).
+  - Si el stream termina sin `done`, se trata como un fallo.
   - Un error enseña el `error_id` del backend, nunca el detalle.
-  - Si falla, la pregunta vuelve al borrador (aurora y ATI). Cancelar no se considera un error (aurora).
+  - Si falla, la pregunta vuelve al borrador. Cancelar no se considera un error.
 - **El cliente genera el `conversation_id`**, uno por conversación. Coincide con `MemoryKey.conversation_id` de `agent-memory`, y el tenant y el usuario salen del token en el backend.
 - **Markdown seguro.** react-markdown crea elementos de React, así que el HTML que venga en la respuesta se muestra como texto. Un `<script>` inyectado en la respuesta del agente no se ejecuta, y hay un test que lo comprueba.
 
@@ -65,7 +65,5 @@ src/features/chat/
 
 ## Origen
 
-- Streaming con fetch POST + reader, buffer de líneas, `token`/`tool_start`/`tool_end`/`error`/`done`, mensaje del asistente vacío al principio y pasos con estado: aurora (`lib/api-client.ts`, `useChat.ts`) y ATI_PLATFORM (`agent-sse.parser.ts`, `agent-chat.store.ts`).
-- CRLF, pings y eventos desconocidos ignorados, un stream sin `done` como fallo y el error solo en los logs: ATI_PLATFORM.
-- `AbortController` por envío, restaurar el borrador y `conversation_id` generado por el cliente: aurora.
-- `data:` multilínea, `error_id` en la interfaz y el test de HTML: nuevos.
+- Probado en producción: streaming con fetch POST + reader, buffer de líneas, `token`/`tool_start`/`tool_end`/`error`/`done`, mensaje del asistente vacío al principio y pasos con estado; CRLF, pings y eventos desconocidos ignorados, un stream sin `done` como fallo y el error solo en los logs; `AbortController` por envío, restaurar el borrador y `conversation_id` generado por el cliente.
+- Nuevo en esta receta: `data:` multilínea, `error_id` en la interfaz y el test de HTML.

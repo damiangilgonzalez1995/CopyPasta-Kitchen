@@ -27,7 +27,7 @@ Un recetario de plantillas (recetas) que otros agentes consultan para no inventa
 ## Qué incluye           (árbol de archivos de files/)
 ## Decisiones            (por qué esta estructura, librerías elegidas)
 ## Cómo adaptarla        (qué renombrar, variables, pasos tras copiar)
-## Origen                (proyectos de los que se extrajo el patrón)
+## Origen                (qué está probado en producción y qué es nuevo en la receta)
 ```
 
 - Breve y accionable: es lo que el agente consumidor carga en contexto.
@@ -35,18 +35,17 @@ Un recetario de plantillas (recetas) que otros agentes consultan para no inventa
 
 ### Plantillas (`files/`)
 
-- Código genérico: sin nombres de negocio de los proyectos de origen.
+- Código genérico: sin nombres de negocio, clientes ni productos.
 - Marcadores con el formato `{{nombre_variable}}` cuando haya que personalizar algo.
 - Deben funcionar tras copiarlas y sustituir los marcadores (incluir dependencias y config mínima).
 - **Estructura por capacidad** (ver "Cómo se estructura un proyecto" en el README): cada receta es una carpeta con su contrato (`base.py`, ABC), un fichero por proveedor, `factory.py` con `match` sobre un Enum de settings e import perezoso, `settings.py` como bloque y su doble de test. Las capacidades no se importan entre sí; quien las combina está un nivel por encima (`create_app`, `main.py`).
 - **Python: Pydantic siempre.** Todo dato estructurado (estado, eventos, resultados, value objects, settings) es un `BaseModel`; para inmutabilidad, `ConfigDict(frozen=True)`. Nunca `@dataclass`, `NamedTuple` ni `TypedDict` como sustituto.
 
-### Análisis (`analysis/`)
+### Sin referencias a proyectos anteriores
 
-- Un archivo por proyecto de origen: `analysis/<proyecto>.md`.
-- Los proyectos de origen están clonados como repos hermanos en `../` (`../aurora`, `../rag_tool_upv`, `../ATI_PLATFORM`, `../Vera-Symplia`). **Solo lectura**: nunca modificarlos.
-- Registrar patrones observados, no copiar código propietario tal cual. Un patrón pasa a receta cuando aparece en más de un proyecto o es claramente reutilizable.
-- No inventar: si algo no está claro en el código de origen, anotarlo como duda.
+- El repositorio **no menciona ningún proyecto anterior del autor**: ni nombres de proyectos, empresas, clientes o productos, ni rutas de archivos de otros repos. Los patrones se presentan como "probado en producción" o "nuevo en esta receta", sin decir de dónde salen.
+- Registrar patrones, no copiar código propietario tal cual. Un patrón pasa a receta cuando es claramente reutilizable.
+- No inventar: si algo no está claro, anotarlo como duda.
 
 ## Idioma
 

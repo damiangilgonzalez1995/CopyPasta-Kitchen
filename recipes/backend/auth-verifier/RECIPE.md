@@ -22,15 +22,15 @@ pytest.ini
 
 ## Decisiones
 
-- **Un contrato, tres proveedores.** `TokenVerifier` vive en `app.state.token_verifier` (Vera) y `AuthFactory` construye el que diga `AUTH_PROVIDER`, sin valor por defecto: caer en el doble estático sería dejar una puerta abierta. El estático exige los usuarios en código, nunca del entorno.
-- **Claims → usuario en un solo método.** `JwtVerifier._to_user` convierte las claims en `CurrentUser`; es async para que un proyecto con tabla de perfiles (ATI, Vera) la consulte ahí y rechace cuentas sin perfil. `_claims` dice dónde están los campos: Supabase los lleva en `app_metadata` (puesto por el servidor, fiable) o `user_metadata` (lo pone el usuario: solo si te fías).
+- **Un contrato, tres proveedores.** `TokenVerifier` vive en `app.state.token_verifier` y `AuthFactory` construye el que diga `AUTH_PROVIDER`, sin valor por defecto: caer en el doble estático sería dejar una puerta abierta. El estático exige los usuarios en código, nunca del entorno.
+- **Claims → usuario en un solo método.** `JwtVerifier._to_user` convierte las claims en `CurrentUser`; es async para que un proyecto con tabla de perfiles la consulte ahí y rechace cuentas sin perfil. `_claims` dice dónde están los campos: Supabase los lleva en `app_metadata` (puesto por el servidor, fiable) o `user_metadata` (lo pone el usuario: solo si te fías).
 - **Tenant obligatorio.** Sin claim de tenant ni `AUTH_DEFAULT_TENANT_ID`, el token se rechaza: una conversación sin tenant no tiene espacio donde vivir.
-- **Supabase solo con claves asimétricas** (ES256/RS256 por JWKS, como Vera), con `aud=authenticated` e `iss=<SUPABASE_URL>/auth/v1`. Aceptar HS256 sin más permitiría usar la clave pública como secreto; se admite solo si configuras `SUPABASE_JWT_SECRET` (proyectos aún con el secreto legado, como ATI).
-- **JWKS caído no es 401.** `AuthUnavailable` se traduce a 503: el cliente no debe cerrar la sesión porque el proveedor no conteste (ATI lo sufrió con 401). La primera obtención de claves va en `asyncio.to_thread`.
+- **Supabase solo con claves asimétricas** (ES256/RS256 por JWKS), con `aud=authenticated` e `iss=<SUPABASE_URL>/auth/v1`. Aceptar HS256 sin más permitiría usar la clave pública como secreto; se admite solo si configuras `SUPABASE_JWT_SECRET` (proyectos aún con el secreto legado).
+- **JWKS caído no es 401.** `AuthUnavailable` se traduce a 503: el cliente no debe cerrar la sesión porque el proveedor no conteste. La primera obtención de claves va en `asyncio.to_thread`.
 - **Los motivos solo al log.** Todo fallo de PyJWT es `InvalidToken` y el cliente ve "Invalid token"; el detalle (caducado, emisor, firma) queda en el log a nivel info.
 - **`SigningKeys` es la costura de test:** los tests firman con una clave ES256 generada al vuelo y la inyectan en lugar del JWKS. Sin red.
 - **`issue_token` solo para el proveedor JWT:** para tu endpoint de login o un script de desarrollo. Con Supabase los tokens los da Supabase.
-- **Tolerancia de reloj** (`AUTH_LEEWAY_SECONDS=30`) como ATI: sin ella un desfase de segundos expulsa al usuario nada más entrar.
+- **Tolerancia de reloj** (`AUTH_LEEWAY_SECONDS=30`): sin ella un desfase de segundos expulsa al usuario nada más entrar.
 
 ## Cómo adaptarla
 
@@ -59,7 +59,5 @@ pytest.ini
 
 ## Origen
 
-- Proveedor elegido por settings (`AUTH_PROVIDER=local | supabase`), JWT propio HS256 con `sub`, `tenant_id` y caducidad, `create_token` para el login local, tenant por defecto desde settings y metadatos de usuario de Supabase: aurora (`api/auth/auth.py`).
-- JWKS de Supabase con ES256 y HS256 legado según la cabecera del token, `leeway` de 30 s, `role=authenticated` como señal de usuario no anónimo, búsqueda del perfil tras verificar: ATI_PLATFORM (`core/security.py`, `api/deps.py`).
-- `TokenVerifier` en `app.state`, `PyJWKClient` con caché e inyectable (`SigningKeys`), solo algoritmos asimétricos, `audience` e `issuer` verificados, error distinto cuando el proveedor no responde, factory sin valor por defecto y doble de test: Vera-Symplia (`auth/base.py`, `auth/supabase.py`, `auth/factory.py`, `auth/test_double.py`).
-- `_to_user` como único punto de mapeo y `TokenClaims` como modelo intermedio: nuevos, para que cambiar de proveedor o añadir la tabla de perfiles no toque el resto.
+- Probado en producción: proveedor elegido por settings, JWT propio HS256 con `sub`, `tenant_id` y caducidad, tenant por defecto desde settings y metadatos de usuario de Supabase; JWKS de Supabase con ES256 y HS256 legado según la cabecera del token, `leeway` de 30 s, `role=authenticated` como señal de usuario no anónimo y búsqueda del perfil tras verificar; `TokenVerifier` en `app.state`, `PyJWKClient` con caché e inyectable (`SigningKeys`), solo algoritmos asimétricos, `audience` e `issuer` verificados, error distinto cuando el proveedor no responde, factory sin valor por defecto y doble de test.
+- Nuevo en esta receta: `_to_user` como único punto de mapeo y `TokenClaims` como modelo intermedio, para que cambiar de proveedor o añadir la tabla de perfiles no toque el resto.

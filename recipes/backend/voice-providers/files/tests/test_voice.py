@@ -62,14 +62,14 @@ class TestOpenAISynthesizer(SynthesizerConformance):
 async def test_openai_transcriber_sends_file_model_language_and_prompt():
     fake = FakeOpenAI(text="  hola mundo ")
     transcriber = VoiceFactory.transcriber(
-        openai_settings(fake, stt_model="gpt-4o-mini-transcribe", stt_language="es", stt_prompt="ATI, Vera"), http_client=fake.http_client
+        openai_settings(fake, stt_model="gpt-4o-mini-transcribe", stt_language="es", stt_prompt="Acme, SKU"), http_client=fake.http_client
     )
     result = await transcriber.transcribe(AudioInput(content=b"...", mime="audio/mp4; codecs=mp4a"), language="pt")
     assert result.text == "hola mundo" and result.language == "pt" and result.engine == "openai"
     sent = fake.requests[0]
     assert sent["path"].endswith("/audio/transcriptions") and sent["filename"] == "audio.mp4"
     assert sent["fields"]["model"] == "gpt-4o-mini-transcribe" and sent["fields"]["language"] == "pt"
-    assert sent["fields"]["prompt"] == "ATI, Vera" and sent["fields"]["response_format"] == "json"
+    assert sent["fields"]["prompt"] == "Acme, SKU" and sent["fields"]["response_format"] == "json"
 
 
 async def test_whisper_uses_verbose_json_and_drops_hallucinations_on_silence():

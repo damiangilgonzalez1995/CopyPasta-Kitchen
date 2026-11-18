@@ -25,17 +25,17 @@ pytest.ini
 
 ## Decisiones
 
-- **El mismo turno, dos respuestas.** Las dos rutas construyen el mismo `Turn` (pregunta limpia, `MemoryKey`, `AgentContext`) y solo cambia cómo se entrega. Aurora y ATI lo hacen así.
+- **El mismo turno, dos respuestas.** Las dos rutas construyen el mismo `Turn` (pregunta limpia, `MemoryKey`, `AgentContext`) y solo cambia cómo se entrega.
 - **Los tres ids.** El cliente solo elige `conversation_id` (y si no lo manda, lo genera el servidor con `uuid4`). `tenant_id` y `user_id` salen del token. Pedir el `conversation_id` de otro no abre su hilo.
 - **Guards en orden y antes de abrir el stream:** flag apagado → 404 (que no se note que hay algo detrás), sin token → 401, `ensure_turn_allowed` → 403 o 429, pregunta vacía → 400. Una vez enviado el primer byte del SSE ya no se puede cambiar el status.
 - **`ensure_turn_allowed` es el punto de extensión** para rol, cuota y rate limit. Por defecto deja pasar. Se sustituye con `app.dependency_overrides` o editándolo. Nada que bloquee dentro de él sin `run_in_threadpool`.
 - **La auth es una clase base.** `TokenVerifier.verify(token) -> CurrentUser` vive en `app.state`, así que el proveedor se decide al construir la app y los tests usan `StaticTokenVerifier`. `auth-verifier` trae Supabase y JWT propio con `AuthFactory`; `AuthUnavailable` (proveedor caído) es un 503, no un 401.
 - **`done` lleva `conversation_id` y `message_id`.** `message_id` es la respuesta guardada en `agent-memory`: lo que el cliente manda al votar (`agent-feedback`). `ChatResponse` tiene los mismos campos.
-- **Persistir antes de responder.** `answer_question` y `stream_answer` escriben en memoria antes de devolver o de emitir `done`. En background abriría una carrera con varios workers (ATI lo sufrió).
+- **Persistir antes de responder.** `answer_question` y `stream_answer` escriben en memoria antes de devolver o de emitir `done`. En background abriría una carrera con varios workers, un problema visto en producción.
 - **Errores en el stream sin detalle.** El grafo ya convierte sus fallos en `error{error_id}`; el router hace lo mismo con lo que falle fuera del grafo (memoria, red). El detalle solo va al log, con el `error_id` y el `thread_id`.
 - **`create_app` con todo inyectado**, encima de `build_app` (`fastapi-base`). No lee el entorno: `main.py` construye las piezas desde el `Settings` del proyecto y las pasa, incluidos `cors_origins`. `/docs` oculto salvo `docs=True`. Los 429 con `detail={"code": ...}` siguen la convención de errores de `fastapi-base`.
 - **Trazas opcionales y por fuera del core.** Si `create_app` recibe un `tracer` (receta `observability`), cada turno corre dentro de `traced_turn`: `begin_turn(thread_id, tenant_id, user_id, request_id)` da el `config` que `answer_question`/`stream_answer` pasan al grafo y `finish()` resume tokens, coste y duración. Sin tracer, el `config` es el de siempre. El tracer es duck-typed: esta receta no importa `observability`.
-- **Sin imágenes ni adjuntos.** Aurora y ATI mandan imágenes en base64 dentro del body; es una extensión de `ChatRequest` y de `AgentContext`, no de esta receta.
+- **Sin imágenes ni adjuntos.** Algunos proyectos mandan imágenes en base64 dentro del body; es una extensión de `ChatRequest` y de `AgentContext`, no de esta receta.
 
 ## Cómo adaptarla
 
@@ -56,7 +56,7 @@ pytest.ini
    )
    ```
 
-5. **Cuota o rate limit:** copia `rate-limit-quota` (trae `ensure_turn_allowed` y `GET /agent/quota`) o implementa el guard tú (403 o 429 con `detail={"code": ...}`; el frontend de ATI lee `code` y `resets_at`).
+5. **Cuota o rate limit:** copia `rate-limit-quota` (trae `ensure_turn_allowed` y `GET /agent/quota`) o implementa el guard tú (403 o 429 con `detail={"code": ...}`; el frontend lee `code` y `resets_at`).
 6. **Trazas, tokens y coste:** copia `observability` y pasa `tracer=TracingFactory.create(settings)`; el `TurnSummary` de cada turno sale en el log.
 7. **Más rutas:** `conversation-history` trae `api/conversations/` (listar, leer, borrar) y `agent-feedback` trae `api/feedback/` (pulgares). Para otras, un router por grupo en `api/<grupo>/router.py`, con `get_current_user` como dependencia, montado con `app.include_router` tras `create_app`.
 8. Para comprobarla: `pytest` con las recetas requeridas copiadas (`fastapi-base`, `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph` y esta: 86 tests; 98 con `observability`).
@@ -65,7 +65,5 @@ pytest.ini
 
 ## Origen
 
-- Dos rutas (JSON y SSE) sobre el mismo grafo, `conversation_id` del cliente con `uuid4` del servidor si falta, tenant y usuario del token, guards antes del stream (flag 404 → acceso 403 → cuota → rate limit → saneado 400), `done` con `conversation_id` y `message_id`, persistir antes de responder, `error_id` en el stream: ATI_PLATFORM (`api/routes/agent.py`, `schemas/agent_schema.py`, `services/input_sanitizer.py`).
-- `EventSourceResponse` de sse-starlette, `session_id` del cliente y rate limit como dependencia que devuelve el usuario: aurora (`api/routers/chat.py`).
-- `create_app(settings)` con los servicios en `app.state`, verificador de tokens como objeto en `app.state`, `/docs` solo en desarrollo: Vera-Symplia (`api/app.py`, `auth/roles.py`).
-- `TokenVerifier` como clase base con doble estático y `ensure_turn_allowed` como dependencia sustituible: nuevos, para mantener la auth y las cuotas fuera de esta receta.
+- Probado en producción: dos rutas (JSON y SSE) sobre el mismo grafo, `conversation_id` del cliente con `uuid4` del servidor si falta, tenant y usuario del token, guards antes del stream (flag 404 → acceso 403 → cuota → rate limit → saneado 400), `done` con `conversation_id` y `message_id`, persistir antes de responder, `error_id` en el stream, `EventSourceResponse` de sse-starlette, rate limit como dependencia que devuelve el usuario, `create_app(settings)` con los servicios y el verificador de tokens en `app.state`, `/docs` solo en desarrollo.
+- Nuevo en esta receta: `TokenVerifier` como clase base con doble estático y `ensure_turn_allowed` como dependencia sustituible, para mantener la auth y las cuotas fuera de esta receta.

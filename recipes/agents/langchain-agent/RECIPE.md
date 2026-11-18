@@ -42,7 +42,7 @@ pytest.ini
 
 - **`create_agent` y no `create_react_agent`**: es la API de LangChain v1 y admite `middleware`, `response_format` y `context_schema`.
 - **Clase base con plantilla.** Una subclase solo declara lo que la distingue: `agent_type`, `response_format`, `get_prompt()` y, si los necesita, `get_tools()` y `get_middleware()`. `initialize()` construye el agente una sola vez y `process()` ejecuta un turno.
-- **Settings por bloques.** La receta no trae settings propios del proyecto. Trae el bloque `LLMSettings` (claves, timeouts y modelo de cada agente), y el `Settings` del proyecto lo hereda: `class Settings(LLMSettings, BaseAppSettings)`. Es el patrón de ATI_PLATFORM con `Settings(ObservabilitySettings)`. La factory lo lee sola con `get_llm_settings()`, así que nadie pasa las claves a mano. `settings=` solo se usa en tests.
+- **Settings por bloques.** La receta no trae settings propios del proyecto. Trae el bloque `LLMSettings` (claves, timeouts y modelo de cada agente), y el `Settings` del proyecto lo hereda: `class Settings(LLMSettings, BaseAppSettings)`. La factory lo lee sola con `get_llm_settings()`, así que nadie pasa las claves a mano. `settings=` solo se usa en tests.
 - **Una sola línea acopla la receta al proyecto:** `PROJECT_SETTINGS = "core.config"` en `llm/settings.py`. Se importa de forma perezosa, así que copiar la receta sola nunca rompe al importar.
 - **El modelo se elige desde fuera**, por id en el `.env` (`ASSISTANT_MODEL=gpt-4.1-mini` → `LLMModel.from_id`). `llm=` es la costura de tests.
 - **La salida estructurada es opcional.** Con `response_format = MiModelo` el resultado llega en `AgentTurn.structured`; con `None`, en `AgentTurn.answer` como texto. Si se declara `response_format` y no llega, salta `AgentError(kind="NoStructuredResponse")`.
@@ -97,8 +97,5 @@ Para comprobarla: `pytest` desde la carpeta copiada.
 
 ## Origen
 
-- `BaseAgent` + `create_agent`, enum `LLMModel` + factory, `initialize()` y `process()`: aurora, ATI_PLATFORM y Vera-Symplia.
-- `llm=` como costura de tests, `context_schema` con `extra="forbid"`, middleware `@wrap_model_call` creado por factory y prompts YAML por idioma: ATI_PLATFORM.
-- `response_format` como atributo de clase, `get_tools()` y `get_middleware()`, tools sobre `BaseTool` con `ToolRuntime` y `ToolSet.default()`: Vera-Symplia.
-- Bloque de settings heredado por el `Settings` del proyecto: ATI_PLATFORM (`Settings(ObservabilitySettings)`). `api_key_for(provider)`: Vera-Symplia, y aurora con `get_api_key`.
-- Proveedor Azure OpenAI: nuevo, no aparecía en ningún proyecto.
+- Probado en producción: `BaseAgent` + `create_agent`, enum `LLMModel` + factory, `initialize()` y `process()`, `llm=` como costura de tests, `context_schema` con `extra="forbid"`, middleware `@wrap_model_call` creado por factory, prompts YAML por idioma, `response_format` como atributo de clase, `get_tools()` y `get_middleware()`, tools sobre `BaseTool` con `ToolRuntime` y `ToolSet.default()`, bloque de settings heredado por el `Settings` del proyecto y `api_key_for(provider)`.
+- Nuevo en esta receta: proveedor Azure OpenAI.

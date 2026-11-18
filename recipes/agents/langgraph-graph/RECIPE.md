@@ -59,6 +59,5 @@ Para comprobarla: `pytest` con las dos recetas copiadas.
 
 ## Origen
 
-- Router → agente | rechazo, State Pydantic, `context_schema`, nodos `@staticmethod invoke`, `build_graph()` compartido entre invoke y stream, `EventProcessor` y `registry` con caché: ATI_PLATFORM.
-- Nodos como clases, una topología común para invoke y stream y errores saneados con `request_id`: aurora.
-- Fan-out y join para ramas paralelas, y reducers solo donde hay concurrencia: Vera-Symplia y rag_tool_upv.
+- Probado en producción: router → agente | rechazo, State Pydantic, `context_schema`, nodos como clases con `@staticmethod invoke`, `build_graph()` compartido entre invoke y stream, `EventProcessor`, `registry` con caché, errores saneados con `request_id`, fan-out y join para ramas paralelas y reducers solo donde hay concurrencia.
+- Nuevo en esta receta: nada; combina patrones ya existentes.

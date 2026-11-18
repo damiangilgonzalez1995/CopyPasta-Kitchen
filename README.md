@@ -13,7 +13,7 @@ Cuando un agente tenga que crear una API con FastAPI, un agente con LangGraph, u
 
 ## Objetivo
 
-- Reunir en un único sitio los patrones de proyectos reales ya desarrollados (aurora, rag_tool_upv, ATI_PLATFORM, Vera-Symplia…).
+- Reunir en un único sitio patrones extraídos de proyectos reales en producción.
 - Convertirlos en **recetas** reutilizables: backend, agentes, frontend, infraestructura, tests…
 - Que un agente pueda **descubrir, leer y descargar** una receta sin tener que cargar el repositorio entero en su contexto.
 
@@ -147,7 +147,6 @@ Nada por ahora: la hoja de ruta está completa. Pendiente de decidir: en los dia
 | `RECIPE.md` | Explica cuándo usar la receta, las decisiones que toma y cómo adaptarla. |
 | `files/` | Los archivos de la plantilla, listos para copiar. |
 | `catalog.yaml` | Índice de todas las recetas: id, categoría, descripción de una línea y tags. |
-| `analysis/` | Notas de los patrones encontrados en cada proyecto de origen, antes de convertirse en recetas. |
 
 ## Estructura
 
@@ -163,8 +162,7 @@ CopyPasta-Kitchen/
 │   └── frontend/
 ├── cli/               # CLI "copypasta" (paquete Python + tests)
 ├── pyproject.toml     # hace instalable la CLI con uvx
-├── skills/copypasta/  # skill de Claude Code que envuelve la CLI
-└── analysis/          # análisis de los proyectos de origen
+└── skills/copypasta/  # skill de Claude Code que envuelve la CLI
 ```
 
 ## Uso (CLI `copypasta`)
@@ -212,9 +210,8 @@ y síguela en lugar de inventar una estructura.
 ## Hoja de ruta
 
 1. [x] Definir objetivo y estructura (este README y `AGENTS.md`).
-2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md` (hecho: síntesis en `analysis/agentic-langgraph.md`, `analysis/frontend.md` y `analysis/chat.md`).
-3. [ ] Convertir los patrones comunes en recetas:
+2. [x] Convertir los patrones comunes en recetas:
    - [x] `project-settings`, `fastapi-base`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`, `rate-limit-quota`, `conversation-history`, `agent-feedback`, `auth-verifier`, `rag-retriever`, `observability`, `voice-providers`
    - [x] `vite-react-base`, `react-agent-chat`, `react-supabase-auth`, `react-app-router`, `playwright-e2e`
-4. [x] Implementar la CLI `copypasta` (`list`, `show`, `get`, `check`; instalable con `uvx`).
-5. [x] Skill de Claude Code que envuelve la CLI (`skills/copypasta/`).
+3. [x] Implementar la CLI `copypasta` (`list`, `show`, `get`, `check`; instalable con `uvx`).
+4. [x] Skill de Claude Code que envuelve la CLI (`skills/copypasta/`).

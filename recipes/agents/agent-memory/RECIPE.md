@@ -4,7 +4,7 @@
 
 Cuando un agente, suelto o dentro de un grafo, tenga que **recordar la conversación** entre peticiones: chat multiusuario y multitenant, con el historial persistido y una ventana acotada que se reenvía al LLM.
 
-No sirve para memoria a largo plazo (hechos del usuario, resúmenes o búsqueda semántica en recuerdos). No aparece en ningún proyecto de origen.
+No sirve para memoria a largo plazo (hechos del usuario, resúmenes o búsqueda semántica en recuerdos).
 
 No depende de otras recetas. **Usa `project-settings`**: trae el bloque `MemorySettings` para heredarlo en el `Settings` del proyecto.
 
@@ -70,7 +70,6 @@ pytest.ini
 
 ## Origen
 
-- ABC `Memory`, `MemoryKey` con los tres ids e inmutable, ventana por turnos con red de seguridad en el mensaje humano, `MemoryFactory` sin valor por defecto, Postgres con `session_factory` inyectada y el id de la última respuesta: ATI_PLATFORM (`agentic/memory/`).
-- Backend elegido en los settings y factory que lo valida (`AgentMemoryFactory`), escritura idempotente (por `client_id`) y tests de conformidad comunes a todos los backends: Vera-Symplia.
-- Memoria a través de un servicio externo (MCP sobre Qdrant), sin clase base: aurora. No se ha incluido.
-- `clear()` es nuevo: no estaba en los proyectos de origen.
+- Probado en producción: ABC `Memory`, `MemoryKey` con los tres ids e inmutable, ventana por turnos con red de seguridad en el mensaje humano, `MemoryFactory` sin valor por defecto, Postgres con `session_factory` inyectada, id de la última respuesta, backend elegido en los settings y validado por la factory, escritura idempotente y tests de conformidad comunes a todos los backends.
+- Descartado: memoria a través de un servicio externo (MCP sobre Qdrant) sin clase base.
+- Nuevo en esta receta: `clear()`.
