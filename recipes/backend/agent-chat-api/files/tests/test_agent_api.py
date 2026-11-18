@@ -195,3 +195,43 @@ async def test_docs_hidden_by_default_and_health_and_request_id_come_from_fastap
         assert (await c.get("/health")).json() == {"status": "ok"}
         refused = await c.post("/agent/chat", json={"question": "hola"})
     assert refused.status_code == 401 and refused.headers["x-request-id"]
+
+
+class FakeTrace:
+    def __init__(self, calls: list, **run) -> None:
+        self.calls = calls
+        self.run = run
+        self.config = {"callbacks": [], "metadata": {"thread_id": run["thread_id"], "traced": True}}
+
+    def finish(self, error=None):
+        self.calls.append((self.run, type(error).__name__ if error else None))
+
+
+class FakeTracer:
+    """What `observability` provides, duck-typed: begin_turn(...) -> trace with .config and .finish()."""
+
+    def __init__(self) -> None:
+        self.calls: list = []
+        self.flushed = False
+
+    def begin_turn(self, **run):
+        return FakeTrace(self.calls, **run)
+
+    async def flush(self):
+        self.flushed = True
+
+
+async def test_turns_run_inside_the_tracer_when_the_app_has_one():
+    tracer = FakeTracer()
+    app = create_app(
+        settings=AgentApiSettings(), token_verifier=StaticTokenVerifier(TOKENS), memory=InMemoryMemory(),
+        document_search=None, tracer=tracer,
+    )
+    async with client(app) as c:
+        chat = await c.post("/agent/chat", json={"question": "hola", "conversation_id": "conv-9"}, headers=auth())
+        stream = await c.post("/agent/stream", json={"question": "hola", "conversation_id": "conv-9"}, headers=auth())
+    assert chat.status_code == 200 and stream.status_code == 200
+    assert [r["thread_id"] for r, _ in tracer.calls] == ["tenant-1:user-1:conv-9"] * 2
+    assert tracer.calls[0][0]["tenant_id"] == "tenant-1" and tracer.calls[0][0]["user_id"] == "user-1"
+    assert tracer.calls[0][0]["request_id"] == chat.headers["x-request-id"]
+    assert [e for _, e in tracer.calls] == [None, None]

@@ -56,7 +56,7 @@ recipes:
     tags: [api, fastapi, chat, sse, streaming, agent, python]
     path: recipes/backend/agent-chat-api
     requires: [fastapi-base, langgraph-graph]
-    uses: [project-settings, auth-verifier, rate-limit-quota]
+    uses: [project-settings, auth-verifier, rate-limit-quota, observability]
 
   - id: rag-retriever
     category: backend
@@ -64,6 +64,13 @@ recipes:
     tags: [rag, retrieval, embeddings, qdrant, pgvector, vector-store, agent, python]
     path: recipes/backend/rag-retriever
     uses: [project-settings, langchain-agent]
+
+  - id: observability
+    category: backend
+    description: Trazas de cada turno del agente en Langfuse, Opik o LangSmith elegido en settings, más tokens, coste y duración por turno en el log, apagado por defecto y sin tumbar nunca el turno
+    tags: [observability, tracing, langfuse, opik, langsmith, tokens, cost, python]
+    path: recipes/backend/observability
+    uses: [project-settings, agent-chat-api]
 
   - id: vite-react-base
     category: frontend

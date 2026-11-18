@@ -42,7 +42,7 @@ START → router_node ─┬→ agent_node ──→ END
 - **Sin checkpointer, con memoria propia** (receta `agent-memory`). `conversation.py` lee la ventana, ejecuta el grafo y guarda los mensajes nuevos antes de responder.
 - **Un grafo, dos modos.** `ainvoke` para JSON y `astream_events(v2)` con `EventProcessor` para SSE. Los tokens solo salen del nodo del agente, así que la salida estructurada del router no llega al usuario. Los eventos propios se emiten con `adispatch_custom_event`.
 - **Errores.** El router falla abierto (si cae, la pregunta pasa al agente). En streaming, un error se convierte en el evento `error` con un `error_id` y sin el detalle, que solo va a los logs.
-- **Observabilidad** por callbacks en `run_config()` (Langfuse, Opik o LangSmith), nunca dentro de los nodos.
+- **Observabilidad** por callbacks en el `config` del run (Langfuse, Opik o LangSmith), nunca dentro de los nodos. `answer_question` y `stream_answer` aceptan `config=`; sin él usan `run_config(thread_id)`. La receta `observability` construye ese `config` por turno.
 
 ## Cómo adaptarla
 

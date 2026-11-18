@@ -20,6 +20,7 @@ from .guards import ensure_turn_allowed, get_agent_api_settings, require_agent_e
 from .sanitize import sanitize_question
 from .schemas import ChatRequest, ChatResponse
 from .settings import AgentApiSettings
+from .tracing import get_tracer, traced_turn
 
 logger = logging.getLogger(__name__)
 
@@ -55,20 +56,28 @@ def prepare_turn(
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(turn: Turn = Depends(prepare_turn), memory: Memory = Depends(get_memory)) -> ChatResponse:
-    result = await answer_question(turn.question, key=turn.key, context=turn.context, memory=memory)
+async def chat(
+    turn: Turn = Depends(prepare_turn), memory: Memory = Depends(get_memory), tracer=Depends(get_tracer)
+) -> ChatResponse:
+    with traced_turn(tracer, turn.key) as config:
+        result = await answer_question(turn.question, key=turn.key, context=turn.context, memory=memory, config=config)
     return ChatResponse(**result.model_dump())
 
 
 @router.post("/stream")
-async def stream(turn: Turn = Depends(prepare_turn), memory: Memory = Depends(get_memory)) -> EventSourceResponse:
+async def stream(
+    turn: Turn = Depends(prepare_turn), memory: Memory = Depends(get_memory), tracer=Depends(get_tracer)
+) -> EventSourceResponse:
     """Same turn as `/chat`, answered as SSE events (see `agentic/graph/events.py`). Ends with
     `done` (same fields as `ChatResponse`) or `error` with a correlation id, never with details."""
 
     async def events():
         try:
-            async for event in stream_answer(turn.question, key=turn.key, context=turn.context, memory=memory):
-                yield event.to_sse()
+            with traced_turn(tracer, turn.key) as config:
+                async for event in stream_answer(
+                    turn.question, key=turn.key, context=turn.context, memory=memory, config=config
+                ):
+                    yield event.to_sse()
         except Exception:  # outside the graph (memory, network): the graph already guards its own
             error_id = uuid.uuid4().hex[:12]
             logger.exception("Chat stream failed (error_id=%s, thread=%s)", error_id, turn.key.thread_id)

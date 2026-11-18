@@ -10,15 +10,16 @@ Para **exponer el agente por HTTP**: el endpoint de chat que consume la interfaz
 
 ```
 api/
-  app.py                create_app(settings, token_verifier, memory, document_search, cors_origins): build_app + lifespan + router (sustituye al de fastapi-base)
+  app.py                create_app(settings, token_verifier, memory, document_search, tracer?, cors_origins): build_app + lifespan + router (sustituye al de fastapi-base)
   auth.py               CurrentUser · TokenVerifier (ABC) · StaticTokenVerifier (tests) · get_current_user (401/503); el mismo archivo que auth-verifier
   agent/
     router.py           POST /agent/chat (JSON) · POST /agent/stream (SSE) · Turn (clave + contexto)
     schemas.py          ChatRequest{question, conversation_id?, language?} · ChatResponse{answer, conversation_id, message_id}
     guards.py           require_agent_enabled (404) · ensure_turn_allowed (403/429: punto de extensión)
     sanitize.py         sanitize_question: trim, longitud, caracteres de control, etiquetas HTML → 400
+    tracing.py          traced_turn(tracer, key): begin_turn → config del run → finish (tracer opcional en app.state, receta observability)
     settings.py         AgentApiSettings: AGENT_ENDPOINT_ENABLED, CHAT_MAX_QUESTION_LENGTH
-tests/test_agent_api.py 10 tests: 401, 404 con el flag, 400, ids, aislamiento por tenant, guard 429, SSE, error sin detalle, idioma, health y request id
+tests/test_agent_api.py 11 tests: 401, 404 con el flag, 400, ids, aislamiento por tenant, guard 429, SSE, error sin detalle, idioma, health y request id, turnos dentro del tracer
 pytest.ini
 ```
 
@@ -33,6 +34,7 @@ pytest.ini
 - **Persistir antes de responder.** `answer_question` y `stream_answer` escriben en memoria antes de devolver o de emitir `done`. En background abriría una carrera con varios workers (ATI lo sufrió).
 - **Errores en el stream sin detalle.** El grafo ya convierte sus fallos en `error{error_id}`; el router hace lo mismo con lo que falle fuera del grafo (memoria, red). El detalle solo va al log, con el `error_id` y el `thread_id`.
 - **`create_app` con todo inyectado**, encima de `build_app` (`fastapi-base`). No lee el entorno: `main.py` construye las piezas desde el `Settings` del proyecto y las pasa, incluidos `cors_origins`. `/docs` oculto salvo `docs=True`. Los 429 con `detail={"code": ...}` siguen la convención de errores de `fastapi-base`.
+- **Trazas opcionales y por fuera del core.** Si `create_app` recibe un `tracer` (receta `observability`), cada turno corre dentro de `traced_turn`: `begin_turn(thread_id, tenant_id, user_id, request_id)` da el `config` que `answer_question`/`stream_answer` pasan al grafo y `finish()` resume tokens, coste y duración. Sin tracer, el `config` es el de siempre. El tracer es duck-typed: esta receta no importa `observability`.
 - **Sin imágenes ni adjuntos.** Aurora y ATI mandan imágenes en base64 dentro del body; es una extensión de `ChatRequest` y de `AgentContext`, no de esta receta.
 
 ## Cómo adaptarla
@@ -49,13 +51,15 @@ pytest.ini
        token_verifier=AuthFactory.create(settings),
        memory=MemoryFactory.create(settings, session_factory=SessionLocal),
        document_search=my_search_service,
+       tracer=TracingFactory.create(settings),   # observability, opcional
        cors_origins=settings.cors_origins,
    )
    ```
 
 5. **Cuota o rate limit:** copia `rate-limit-quota` (trae `ensure_turn_allowed` y `GET /agent/quota`) o implementa el guard tú (403 o 429 con `detail={"code": ...}`; el frontend de ATI lee `code` y `resets_at`).
-6. **Más rutas:** `conversation-history` trae `api/conversations/` (listar, leer, borrar) y `agent-feedback` trae `api/feedback/` (pulgares). Para otras, un router por grupo en `api/<grupo>/router.py`, con `get_current_user` como dependencia, montado con `app.include_router` tras `create_app`.
-7. Para comprobarla: `pytest` con las recetas requeridas copiadas (`fastapi-base`, `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph` y esta: 85 tests).
+6. **Trazas, tokens y coste:** copia `observability` y pasa `tracer=TracingFactory.create(settings)`; el `TurnSummary` de cada turno sale en el log.
+7. **Más rutas:** `conversation-history` trae `api/conversations/` (listar, leer, borrar) y `agent-feedback` trae `api/feedback/` (pulgares). Para otras, un router por grupo en `api/<grupo>/router.py`, con `get_current_user` como dependencia, montado con `app.include_router` tras `create_app`.
+8. Para comprobarla: `pytest` con las recetas requeridas copiadas (`fastapi-base`, `project-settings`, `langchain-agent`, `agent-memory`, `langgraph-graph` y esta: 86 tests; 98 con `observability`).
 
 **Dependencias** (además de las de `langgraph-graph`): `fastapi`, `sse-starlette`, `httpx` (tests). Probado con fastapi 0.162.5 y sse-starlette 3.7.0.
 

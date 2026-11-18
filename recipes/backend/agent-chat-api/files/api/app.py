@@ -13,6 +13,7 @@ pieces from the project settings and passes them in. That is the test seam.
         token_verifier=AuthFactory.create(settings),            # auth-verifier (or your subclass)
         memory=MemoryFactory.create(settings, session_factory=SessionLocal),
         document_search=my_search_service,
+        tracer=TracingFactory.create(settings),                 # observability (optional)
         cors_origins=settings.cors_origins,                     # ApiSettings, fastapi-base
     )
 """
@@ -41,10 +42,12 @@ def create_app(
     memory: Memory,
     document_search: Any,
     llm_settings: LLMSettings | None = None,
+    tracer: Any | None = None,
     docs: bool = False,
     cors_origins: Sequence[str] = (),
 ) -> FastAPI:
     """`llm_settings=None` -> the project settings (`get_llm_settings()`); pass one only in tests.
+    `tracer` (recipe `observability`, `TracingFactory.create(settings)`) traces every turn; None = no traces.
     `docs=False` hides /docs and /openapi.json: enable it in development only."""
 
     @asynccontextmanager
@@ -52,10 +55,13 @@ def create_app(
         registry.configure(document_search=document_search, settings=llm_settings)
         compile_graph()
         yield
+        if tracer is not None:
+            await tracer.flush()
 
     app = build_app(title="{{app_name}}", lifespan=lifespan, docs=docs, cors_origins=cors_origins)
     app.state.agent_api_settings = settings
     app.state.token_verifier = token_verifier
     app.state.memory = memory
+    app.state.tracer = tracer
     app.include_router(agent_router)
     return app
