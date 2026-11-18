@@ -21,6 +21,56 @@ Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
 - **Pydantic siempre.** Cualquier dato estructurado es un modelo Pydantic (`BaseModel`, `frozen=True` si es inmutable): se valida, se serializa y documenta sus campos. No hay `dataclass` en las recetas.
 - **Costuras de test.** Todo se puede probar sin claves ni red: LLMs falsos, implementaciones en memoria e inyección por constructor.
 
+## Cómo se estructura un proyecto
+
+La visión: **el código se lee como una pirámide**. Abres una carpeta, sabes qué fichero mirar primero y desde ahí bajas de lo general al detalle sin buscar en diez sitios a la vez. No es una arquitectura hexagonal por capas (`domain/`, `application/`, `infrastructure/`), que reparte una misma funcionalidad por tres carpetas transversales. Es lo contrario: **lo que cambia junto vive junto**.
+
+Un backend típico:
+
+```
+backend/src/{{app_name}}/
+├── app.py            # la cima: lee Settings, llama a cada factory una vez y monta la app
+├── api/              # rutas FastAPI: solo hablan con los servicios ya construidos
+├── core/             # lo que usa todo el mundo: settings, errores, ids, modelos base
+├── agentic/          # el agente: grafo, nodos, tools, prompts, memoria
+├── rag/              # búsqueda en documentos: contrato, proveedores (Qdrant, pgvector, RAM), chunking
+├── auth/             # quién llama: contrato y proveedores (Supabase, JWT, doble de test)
+├── limits/           # cuota y rate limit: lógica en la base, almacenamiento intercambiable
+└── observability/    # trazas y coste: contrato y proveedores (Langfuse, Opik, LangSmith, nulo)
+```
+
+Cuatro reglas lo sostienen:
+
+1. **Por funcionalidad.** Una carpeta por cosa que hace el sistema, con su contrato, sus proveedores, sus modelos y su doble de test dentro. `core/` es la única carpeta transversal y debe quedarse pequeña: settings, errores, ids y modelos que de verdad usan todos. Si algo de `core/` solo lo usa una carpeta, pertenece a esa carpeta.
+2. **Fachada.** Cada carpeta tiene una puerta: un fichero con su mismo nombre (`store/store.py`, `rag/rag.py`) o, en Python, el `__init__.py` que re-exporta lo público. El resto son piezas internas que nadie importa desde fuera. Excepciones: `core/`, que se importa por ficheros, y las subcarpetas de detalle (`providers/`, `queries/`).
+3. **Regla de descenso.** Un fichero se lee de arriba abajo: la clase principal primero, los detalles después. Entre carpetas, igual: `app.py`, luego quien orquesta, luego cada capacidad, luego los proveedores. Las dependencias apuntan **siempre hacia abajo**: `app.py` → orquestación → capacidades → `core/`. Dos capacidades no se importan entre sí; si lo necesitan, quien las combina está un nivel por encima.
+4. **Strategy + Factory.** Cada capacidad intercambiable tiene una clase base `ABC` en `base.py`, un fichero por proveedor y un `factory.py` con un `match` sobre un Enum que viene del `.env`. El proveedor se importa solo cuando se elige (instalas solo lo que usas) y un valor desconocido falla con un error que lo nombra. La lógica común vive en la clase base; la subclase solo guarda y lee.
+
+### De dónde viene
+
+Nada de esto es nuevo; es una combinación concreta de ideas con nombre:
+
+- **Package by feature / vertical slices.** Organizar por capacidad en lugar de por capa técnica. Robert C. Martin lo llama *screaming architecture* ("la estructura debería gritar qué hace el sistema, no con qué framework está hecho", *Clean Architecture*, 2017); Simon Brown lo defiende en *Modular Monoliths*; Jimmy Bogard lo popularizó como *vertical slice architecture*. En Python, las *apps* de Django y los paquetes de Go siguen esta idea.
+- **Puertos y adaptadores, pero locales.** La clase base es el puerto y cada proveedor un adaptador (Alistair Cockburn, *Hexagonal Architecture*, 2005). La diferencia con la hexagonal habitual es que el puerto vive en la carpeta de su capacidad, no en una capa `domain/` común.
+- **Strategy y Factory** son patrones del *Gang of Four* (*Design Patterns*, 1994). El `match` sobre un Enum es la forma moderna de la factory en Python 3.10+.
+- **Composition root.** `app.py` construye todo una vez y lo inyecta; nadie más llama a una factory. Es la inyección de dependencias manual de Mark Seemann (*Dependency Injection: Principles, Practices, and Patterns*, 2019), sin contenedor.
+- **Regla de descenso** (*stepdown rule*): Robert C. Martin, *Clean Code* (2008), capítulo 3: el código se lee como un periódico, el titular arriba y el detalle abajo. Aquí se aplica también a las carpetas.
+- **Fachada:** patrón *Facade* del Gang of Four. Una puerta por módulo esconde las piezas internas y permite reordenarlas sin tocar a quien las usa.
+
+### Límites y cómo evitarlos
+
+Esta forma de estructurar tiene riesgos conocidos; conviene nombrarlos para no caer en ellos:
+
+- **Ciclos entre capacidades.** El peligro número uno de organizar por funcionalidad: `rag/` importa `auth/`, `auth/` importa `limits/`, y la pirámide se convierte en una red. La regla de dependencias hacia abajo es lo que lo evita, y se puede hacer cumplir con una herramienta (`import-linter` con contratos de capas) en lugar de confiar en la disciplina.
+- **`core/` como cajón desastre.** Todo lo que no se sabe dónde poner acaba en `core/` y se vuelve la carpeta más grande del proyecto. Regla práctica: si lo usa una sola capacidad, va a esa capacidad; si lo usan dos, se pregunta primero si una debería estar encima de la otra.
+- **Abstraer antes de tiempo.** Una `ABC` y una factory para algo que solo tendrá un proveedor es ceremonia. La justificación aquí es el doble de test (RAM, nulo, falso): si no vas a querer un doble, no hace falta la base. YAGNI sigue aplicando.
+- **Imports perezosos que fallan tarde.** Importar el proveedor dentro del `match` significa que un paquete que falta no se nota hasta que ese proveedor se elige en producción. Un test que construya cada proveedor desde settings lo descubre antes.
+- **Capacidades que crecen.** Una carpeta con quince ficheros ya no se lee como una pirámide. Es la señal para subcarpetas de detalle (`providers/`, `queries/`) o para partirla en dos capacidades.
+- **Quién orquesta.** Cuando varias capacidades se combinan, hace falta una carpeta por encima que lo haga (`orchestrator/`, `conversation.py`). Si esa lógica se reparte entre las capacidades, se pierde el descenso.
+- **Onboarding.** Quien viene de Django, de Clean Architecture por capas o de la hexagonal clásica busca `models/`, `services/` y `repositories/`. Un párrafo como este en el README del proyecto ahorra esa semana.
+
+Las recetas de este repositorio siguen estas reglas: cada una es una capacidad con `base.py`, un fichero por proveedor, `factory.py`, `settings.py` y su doble de test, y `create_app`/`main.py` es la cima que llama a cada factory una vez.
+
 ## Recetas
 
 ### Disponibles
@@ -46,7 +96,7 @@ Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
 
 ### Pendientes
 
-Ver la hoja de ruta y `analysis/chat.md`. Todavía no existe receta de FastAPI genérica, auth, cuotas, historial de conversaciones, feedback ni RAG.
+Ver la hoja de ruta. Quedan `voice-providers` (STT/TTS), las extensiones del frontend (auth con Supabase, router, e2e) y la CLI `copypasta`.
 
 ## Conceptos
 

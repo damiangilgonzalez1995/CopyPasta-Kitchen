@@ -37,6 +37,7 @@ Un recetario de plantillas (recetas) que otros agentes consultan para no inventa
 - Código genérico: sin nombres de negocio de los proyectos de origen.
 - Marcadores con el formato `{{nombre_variable}}` cuando haya que personalizar algo.
 - Deben funcionar tras copiarlas y sustituir los marcadores (incluir dependencias y config mínima).
+- **Estructura por capacidad** (ver "Cómo se estructura un proyecto" en el README): cada receta es una carpeta con su contrato (`base.py`, ABC), un fichero por proveedor, `factory.py` con `match` sobre un Enum de settings e import perezoso, `settings.py` como bloque y su doble de test. Las capacidades no se importan entre sí; quien las combina está un nivel por encima (`create_app`, `main.py`).
 - **Python: Pydantic siempre.** Todo dato estructurado (estado, eventos, resultados, value objects, settings) es un `BaseModel`; para inmutabilidad, `ConfigDict(frozen=True)`. Nunca `@dataclass`, `NamedTuple` ni `TypedDict` como sustituto.
 
 ### Análisis (`analysis/`)
