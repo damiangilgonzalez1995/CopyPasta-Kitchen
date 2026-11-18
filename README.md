@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/logo/logo-lockup-dark.png">
+    <img src="docs/img/logo/logo-lockup-light.png" alt="CopyPasta Kitchen" width="520">
+  </picture>
+</p>
+
 # CopyPasta-Kitchen 🍝
 
 Recetario de plantillas para que los agentes de código (Claude Code y similares) **no se inventen la estructura** de un proyecto, sino que partan de patrones ya probados.
@@ -23,7 +30,9 @@ Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
 
 ## Cómo se estructura un proyecto
 
-![Cómo estructuro un proyecto](docs/img/00-how-i-structure-a-project.png)
+![Los cuatro pilares](docs/img/pillars/pillars-all.png)
+
+![La montaña: los cuatro pilares trabajando juntos](docs/img/01-the-mountain-3d.gif)
 
 La visión: **el código se lee como una pirámide**. Abres una carpeta, sabes qué fichero mirar primero y desde ahí bajas de lo general al detalle sin buscar en diez sitios a la vez. No es una arquitectura hexagonal por capas (`domain/`, `application/`, `infrastructure/`), que reparte una misma funcionalidad por tres carpetas transversales. Es lo contrario: **lo que cambia junto vive junto**.
 
@@ -78,7 +87,16 @@ Esta forma de estructurar tiene riesgos conocidos; conviene nombrarlos para no c
 
 Las recetas de este repositorio siguen estas reglas: cada una es una capacidad con `base.py`, un fichero por proveedor, `factory.py`, `settings.py` y su doble de test, y `create_app`/`main.py` es la cima que llama a cada factory una vez.
 
-Los diagramas de cada regla (la montaña, por funcionalidad frente a por capas, Strategy + Factory y cuándo no, fachada y descenso) están descritos en [docs/diagrams.md](docs/diagrams.md), en inglés (el texto de las imágenes también), con sus nombres de archivo en `docs/img/`.
+<details><summary>Cada pilar en detalle</summary>
+
+![Por funcionalidad, no por capas](docs/img/02-by-feature.png)
+![Strategy + Factory, y cuándo no](docs/img/03-strategy-factory.png)
+![Fachada y regla de descenso](docs/img/04-facade-and-stepdown.png)
+![Composición completa](docs/img/00-how-i-structure-a-project.png)
+
+</details>
+
+Las imágenes están en inglés y en `docs/img/` (la montaña también como `01-the-mountain.png` estático y `01-the-mountain-3d.mp4`); su guion está en [docs/diagrams.md](docs/diagrams.md).
 
 ## Recetas
 
