@@ -30,8 +30,6 @@ Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
 
 ## Cómo se estructura un proyecto
 
-![Los cuatro pilares](docs/img/pillars/pillars-all.png)
-
 ![La montaña: los cuatro pilares trabajando juntos](docs/img/01-the-mountain-3d.gif)
 
 La visión: **el código se lee como una pirámide**. Abres una carpeta, sabes qué fichero mirar primero y desde ahí bajas de lo general al detalle sin buscar en diez sitios a la vez. No es una arquitectura hexagonal por capas (`domain/`, `application/`, `infrastructure/`), que reparte una misma funcionalidad por tres carpetas transversales. Es lo contrario: **lo que cambia junto vive junto**.
@@ -53,9 +51,21 @@ backend/src/{{app_name}}/
 Cuatro reglas lo sostienen:
 
 1. **Por funcionalidad.** Una carpeta por cosa que hace el sistema, con su contrato, sus proveedores, sus modelos y su doble de test dentro. `core/` es la única carpeta transversal y debe quedarse pequeña: settings, errores, ids y modelos que de verdad usan todos. Si algo de `core/` solo lo usa una carpeta, pertenece a esa carpeta.
+
+   <img src="docs/img/pillars/pillar-01.png" alt="Pilar 1: por funcionalidad, no por capas" width="560">
+
 2. **Fachada.** Cada carpeta tiene una puerta: un fichero con su mismo nombre (`store/store.py`, `rag/rag.py`) o, en Python, el `__init__.py` que re-exporta lo público. El resto son piezas internas que nadie importa desde fuera. Excepciones: `core/`, que se importa por ficheros, y las subcarpetas de detalle (`providers/`, `queries/`).
+
+   <img src="docs/img/pillars/pillar-02.png" alt="Pilar 2: una puerta por carpeta" width="560">
+
 3. **Regla de descenso.** Un fichero se lee de arriba abajo: la clase principal primero, los detalles después. Entre carpetas, igual: `app.py`, luego quien orquesta, luego cada capacidad, luego los proveedores. Las dependencias apuntan **siempre hacia abajo**: `app.py` → orquestación → capacidades → `core/`. Dos capacidades no se importan entre sí; si lo necesitan, quien las combina está un nivel por encima.
+
+   <img src="docs/img/pillars/pillar-03.png" alt="Pilar 3: se lee de arriba abajo" width="560">
+
 4. **Strategy + Factory, solo cuando hay algo que elegir.** Cada capacidad **intercambiable** tiene una clase base `ABC` en `base.py`, un fichero por proveedor y un `factory.py` con un `match` sobre un Enum que viene del `.env`. El proveedor se importa solo cuando se elige (instalas solo lo que usas) y un valor desconocido falla con un error que lo nombra. La lógica común vive en la clase base; la subclase solo guarda y lee. **Si solo hay un proveedor y no va a haber un doble de test, no hay clase base ni factory**: una clase concreta y punto. La abstracción se paga cuando aparece la segunda implementación, no antes.
+
+   <img src="docs/img/pillars/pillar-04.png" alt="Pilar 4: proveedores intercambiables, solo cuando hace falta" width="560">
+
 
 ### De dónde viene
 
