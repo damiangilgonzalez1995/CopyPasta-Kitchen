@@ -15,6 +15,7 @@ Un recetario de plantillas (recetas) que otros agentes consultan para no inventa
   - `files/`: los archivos de la plantilla.
 - El `id` es único, en kebab-case (`fastapi-base`, `langgraph-agent`).
 - Toda receta nueva o modificada **debe** reflejarse en `catalog.yaml`.
+- Antes de confirmar cambios, ejecuta `copypasta check` (o `python -m copypasta.main check` desde `cli/`): comprueba que cada receta del disco está en el catálogo, que cada entrada tiene `RECIPE.md` y `files/`, y que `requires`/`uses` apuntan a recetas reales.
 - La `description` del catálogo es **una sola línea** y dice para qué sirve, no cómo está hecha. Es lo único que verá un agente al listar.
 
 ### Formato de `RECIPE.md`

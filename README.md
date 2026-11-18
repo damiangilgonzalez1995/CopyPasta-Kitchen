@@ -109,7 +109,7 @@ Los diagramas de cada regla (la montaña, por funcionalidad frente a por capas, 
 
 ### Pendientes
 
-Ver la hoja de ruta. Queda la CLI `copypasta`.
+Ver la hoja de ruta. Queda, opcional, una skill de Claude Code que envuelva la CLI.
 
 ## Conceptos
 
@@ -133,30 +133,37 @@ CopyPasta-Kitchen/
 │   ├── backend/
 │   ├── agents/
 │   └── frontend/
-├── cli/               # CLI "copypasta" (pendiente)
+├── cli/               # CLI "copypasta" (paquete Python + tests)
+├── pyproject.toml     # hace instalable la CLI con uvx
 └── analysis/          # análisis de los proyectos de origen
 ```
 
-## Uso previsto (CLI, pendiente de implementar)
+## Uso (CLI `copypasta`)
 
 El flujo está pensado para gastar el mínimo contexto en cada paso:
 
 ```bash
-# 1. Descubrir: solo ids y descripción corta
+# 1. Descubrir: solo ids y descripción corta (filtra por --tag o --category; --json para máquinas)
 copypasta list --tag api
 
-# 2. Leer: solo el RECIPE.md de una receta
+# 2. Leer: solo el RECIPE.md de una receta (--files lista los archivos de files/)
 copypasta show fastapi-base
 
-# 3. Descargar: copia los archivos al proyecto
-copypasta get fastapi-base --to ./backend
+# 3. Copiar: los archivos al proyecto. Nunca pisa un archivo que ya exista (salvo --force);
+#    --with-requires copia antes las recetas que requiere. Al final dice qué marcadores sustituir.
+copypasta get fastapi-base --to ./backend --with-requires
+
+# 4. Mantener el recetario: valida catalog.yaml contra recipes/ (reglas de AGENTS.md)
+copypasta check
 ```
 
-Sin instalación, vía `uvx`:
+Sin instalación, vía `uvx` (necesita Python 3.11 a 3.14; `uv` lo elige solo):
 
 ```bash
 uvx --from git+https://github.com/damiangilgonzalez1995/CopyPasta-Kitchen copypasta list
 ```
+
+El paquete lleva dentro el catálogo y las recetas, así que `get` funciona desde cualquier carpeta. Dentro del checkout también vale `python -m copypasta.main` desde `cli/`. Tests: `pytest cli/tests` (necesita `pydantic` y `pyyaml`).
 
 ### En otros proyectos
 
@@ -176,5 +183,5 @@ y síguela en lugar de inventar una estructura.
 3. [ ] Convertir los patrones comunes en recetas:
    - [x] `project-settings`, `fastapi-base`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`, `rate-limit-quota`, `conversation-history`, `agent-feedback`, `auth-verifier`, `rag-retriever`, `observability`, `voice-providers`
    - [x] `vite-react-base`, `react-agent-chat`, `react-supabase-auth`, `react-app-router`, `playwright-e2e`
-4. [ ] Implementar la CLI `copypasta`.
+4. [x] Implementar la CLI `copypasta` (`list`, `show`, `get`, `check`; instalable con `uvx`).
 5. [ ] (Opcional) Skill de Claude Code que envuelva la CLI.
