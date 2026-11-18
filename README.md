@@ -98,6 +98,7 @@ Los diagramas de cada regla (la montaña, por funcionalidad frente a por capas, 
 | `rate-limit-quota` | backend | Rate limit por usuario y cuota diaria/mensual por tenant: lógica en clases base, backend RAM o SQL por settings, 429 con `code` y `GET /agent/quota` | usa `project-settings`, `agent-chat-api` |
 | `rag-retriever` | backend | Búsqueda en los documentos del tenant: chunking, embeddings (OpenAI o local), store RAM/Qdrant/pgvector por settings, indexado idempotente por hash y el `document_search` de la tool del agente | usa `project-settings`, `langchain-agent` |
 | `observability` | backend | Trazas por turno en Langfuse, Opik o LangSmith (settings), tokens, coste y duración en el log; apagado por defecto y fail-open | usa `project-settings`, `agent-chat-api` |
+| `voice-providers` | backend | Dictado y lectura en voz alta: `POST /voice/transcribe` (multipart) y `/voice/synthesize`, proveedor OpenAI o doble local por settings, audio nunca guardado, errores por causa (413/415/422/429/502/503/504) | requiere `fastapi-base`, `auth-verifier`; usa `project-settings` |
 | `vite-react-base` | frontend | SPA Vite + React + TS para un backend Python: API intercambiable (http o fake) por configuración, cliente con auth y errores tipados | — |
 | `react-agent-chat` | frontend | Chat con un agente en streaming SSE: tokens, tools, cancelar, errores, Markdown seguro | requiere `vite-react-base`, usa `agent-chat-api` |
 
@@ -105,7 +106,7 @@ Los diagramas de cada regla (la montaña, por funcionalidad frente a por capas, 
 
 ### Pendientes
 
-Ver la hoja de ruta. Quedan `voice-providers` (STT/TTS), las extensiones del frontend (auth con Supabase, router, e2e) y la CLI `copypasta`.
+Ver la hoja de ruta. Quedan las extensiones del frontend (auth con Supabase, router, e2e) y la CLI `copypasta`.
 
 ## Conceptos
 
@@ -170,9 +171,8 @@ y síguela en lugar de inventar una estructura.
 1. [x] Definir objetivo y estructura (este README y `AGENTS.md`).
 2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md` (hecho: síntesis en `analysis/agentic-langgraph.md`, `analysis/frontend.md` y `analysis/chat.md`).
 3. [ ] Convertir los patrones comunes en recetas:
-   - [x] `project-settings`, `fastapi-base`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`, `rate-limit-quota`, `conversation-history`, `agent-feedback`, `auth-verifier`, `rag-retriever`, `observability`
+   - [x] `project-settings`, `fastapi-base`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`, `rate-limit-quota`, `conversation-history`, `agent-feedback`, `auth-verifier`, `rag-retriever`, `observability`, `voice-providers`
    - [x] `vite-react-base`, `react-agent-chat`
-   - [ ] `voice-providers` (STT/TTS)
    - [ ] Frontend: auth con Supabase (`TokenProvider`), router, e2e con Playwright contra el fake
 4. [ ] Implementar la CLI `copypasta`.
 5. [ ] (Opcional) Skill de Claude Code que envuelva la CLI.

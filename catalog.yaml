@@ -72,6 +72,14 @@ recipes:
     path: recipes/backend/observability
     uses: [project-settings, agent-chat-api]
 
+  - id: voice-providers
+    category: backend
+    description: Dictado y lectura en voz alta para la API (POST /voice/transcribe y /voice/synthesize) con proveedor OpenAI o doble local elegido en settings, sin guardar audio y con códigos de error por causa
+    tags: [voice, stt, tts, whisper, speech, audio, fastapi, python]
+    path: recipes/backend/voice-providers
+    requires: [fastapi-base, auth-verifier]
+    uses: [project-settings, rate-limit-quota]
+
   - id: vite-react-base
     category: frontend
     description: SPA Vite + React + TypeScript para un backend Python, con API intercambiable (http o fake) por configuración y tests
