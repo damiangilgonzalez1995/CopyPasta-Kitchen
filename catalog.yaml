@@ -94,6 +94,29 @@ recipes:
     requires: [vite-react-base]
     uses: [agent-chat-api]
 
+  - id: react-supabase-auth
+    category: frontend
+    description: Login del frontend con Supabase Auth o un fake elegido en settings, sesión persistida, guard y caducidad
+    tags: [frontend, react, auth, supabase, session]
+    path: recipes/frontend/react-supabase-auth
+    requires: [vite-react-base]
+    uses: [react-app-router, playwright-e2e]
+
+  - id: react-app-router
+    category: frontend
+    description: Rutas de la SPA con react-router, cabecera con navegación, pantallas perezosas, 404 y guard inyectado desde main
+    tags: [frontend, react, router, navigation]
+    path: recipes/frontend/react-app-router
+    requires: [vite-react-base]
+    uses: [react-supabase-auth, playwright-e2e]
+
+  - id: playwright-e2e
+    category: frontend
+    description: E2E con Playwright contra la build en modo fake (sin backend ni Supabase), escritorio y móvil, con workflow de CI
+    tags: [frontend, e2e, playwright, ci, testing]
+    path: recipes/frontend/playwright-e2e
+    requires: [vite-react-base, react-supabase-auth, react-app-router]
+
   - id: rate-limit-quota
     category: backend
     description: Rate limit por usuario y cuota diaria/mensual por tenant con la lógica en clases base, almacenamiento intercambiable (RAM o SQL) y 429 con código

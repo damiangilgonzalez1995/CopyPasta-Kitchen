@@ -101,12 +101,15 @@ Los diagramas de cada regla (la montaña, por funcionalidad frente a por capas, 
 | `voice-providers` | backend | Dictado y lectura en voz alta: `POST /voice/transcribe` (multipart) y `/voice/synthesize`, proveedor OpenAI o doble local por settings, audio nunca guardado, errores por causa (413/415/422/429/502/503/504) | requiere `fastapi-base`, `auth-verifier`; usa `project-settings` |
 | `vite-react-base` | frontend | SPA Vite + React + TS para un backend Python: API intercambiable (http o fake) por configuración, cliente con auth y errores tipados | — |
 | `react-agent-chat` | frontend | Chat con un agente en streaming SSE: tokens, tools, cancelar, errores, Markdown seguro | requiere `vite-react-base`, usa `agent-chat-api` |
+| `react-supabase-auth` | frontend | Login con Supabase Auth o fake por settings, sesión persistida, guard `RequireSession`, caducidad y salir | requiere `vite-react-base`, usa `react-app-router` |
+| `react-app-router` | frontend | Rutas con react-router: tabla única, cabecera, pantallas perezosas, 404, guard inyectado desde `main.tsx` | requiere `vite-react-base`, usa `react-supabase-auth` |
+| `playwright-e2e` | frontend | E2E en navegador real contra la build en modo fake, escritorio y móvil, con workflow de CI | requiere `vite-react-base`, `react-supabase-auth`, `react-app-router` |
 
 `requires`: hay que copiar las dos recetas. `uses`: se integra con la otra receta, pero no la trae.
 
 ### Pendientes
 
-Ver la hoja de ruta. Quedan las extensiones del frontend (auth con Supabase, router, e2e) y la CLI `copypasta`.
+Ver la hoja de ruta. Queda la CLI `copypasta`.
 
 ## Conceptos
 
@@ -172,7 +175,6 @@ y síguela en lugar de inventar una estructura.
 2. [ ] Analizar los proyectos de origen → `analysis/<proyecto>.md` (hecho: síntesis en `analysis/agentic-langgraph.md`, `analysis/frontend.md` y `analysis/chat.md`).
 3. [ ] Convertir los patrones comunes en recetas:
    - [x] `project-settings`, `fastapi-base`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`, `rate-limit-quota`, `conversation-history`, `agent-feedback`, `auth-verifier`, `rag-retriever`, `observability`, `voice-providers`
-   - [x] `vite-react-base`, `react-agent-chat`
-   - [ ] Frontend: auth con Supabase (`TokenProvider`), router, e2e con Playwright contra el fake
+   - [x] `vite-react-base`, `react-agent-chat`, `react-supabase-auth`, `react-app-router`, `playwright-e2e`
 4. [ ] Implementar la CLI `copypasta`.
 5. [ ] (Opcional) Skill de Claude Code que envuelva la CLI.
