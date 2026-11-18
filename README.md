@@ -127,7 +127,7 @@ Las imágenes están en inglés y en `docs/img/` (la montaña también como `01-
 
 ### Pendientes
 
-Ver la hoja de ruta. Queda, opcional, una skill de Claude Code que envuelva la CLI.
+Nada por ahora: la hoja de ruta está completa. Pendiente de decidir: en los diagramas `limits/` muestra `redis.py`, pero la receta `rate-limit-quota` ofrece `in_memory | sql`.
 
 ## Conceptos
 
@@ -153,6 +153,7 @@ CopyPasta-Kitchen/
 │   └── frontend/
 ├── cli/               # CLI "copypasta" (paquete Python + tests)
 ├── pyproject.toml     # hace instalable la CLI con uvx
+├── skills/copypasta/  # skill de Claude Code que envuelve la CLI
 └── analysis/          # análisis de los proyectos de origen
 ```
 
@@ -185,7 +186,11 @@ El paquete lleva dentro el catálogo y las recetas, así que `get` funciona desd
 
 ### En otros proyectos
 
-Añade esto al `AGENTS.md` (o `CLAUDE.md`) del proyecto donde trabaje el agente:
+Dos formas, compatibles entre sí:
+
+**Skill de Claude Code** ([skills/copypasta/SKILL.md](skills/copypasta/SKILL.md)): copia la carpeta `skills/copypasta` a `.claude/skills/` del proyecto (o a `~/.claude/skills/` para tenerla en todos). Claude la carga sola cuando va a crear una API, un agente, un frontend, auth, RAG, etc., y sigue el flujo `list` → `show` → `get` → adaptar, respetando las reglas de las recetas. Necesita `uv` para ejecutar la CLI con `uvx`.
+
+**Una nota en `AGENTS.md`** (o `CLAUDE.md`) del proyecto, para cualquier agente:
 
 ```markdown
 ## Plantillas
@@ -202,4 +207,4 @@ y síguela en lugar de inventar una estructura.
    - [x] `project-settings`, `fastapi-base`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`, `rate-limit-quota`, `conversation-history`, `agent-feedback`, `auth-verifier`, `rag-retriever`, `observability`, `voice-providers`
    - [x] `vite-react-base`, `react-agent-chat`, `react-supabase-auth`, `react-app-router`, `playwright-e2e`
 4. [x] Implementar la CLI `copypasta` (`list`, `show`, `get`, `check`; instalable con `uvx`).
-5. [ ] (Opcional) Skill de Claude Code que envuelva la CLI.
+5. [x] Skill de Claude Code que envuelve la CLI (`skills/copypasta/`).
