@@ -23,6 +23,8 @@ Las recetas siguen la forma de trabajar del autor, sobre todo en backend:
 
 ## Cómo se estructura un proyecto
 
+![Cómo estructuro un proyecto](docs/img/00-how-i-structure-a-project.png)
+
 La visión: **el código se lee como una pirámide**. Abres una carpeta, sabes qué fichero mirar primero y desde ahí bajas de lo general al detalle sin buscar en diez sitios a la vez. No es una arquitectura hexagonal por capas (`domain/`, `application/`, `infrastructure/`), que reparte una misma funcionalidad por tres carpetas transversales. Es lo contrario: **lo que cambia junto vive junto**.
 
 Un backend típico:
@@ -44,18 +46,23 @@ Cuatro reglas lo sostienen:
 1. **Por funcionalidad.** Una carpeta por cosa que hace el sistema, con su contrato, sus proveedores, sus modelos y su doble de test dentro. `core/` es la única carpeta transversal y debe quedarse pequeña: settings, errores, ids y modelos que de verdad usan todos. Si algo de `core/` solo lo usa una carpeta, pertenece a esa carpeta.
 2. **Fachada.** Cada carpeta tiene una puerta: un fichero con su mismo nombre (`store/store.py`, `rag/rag.py`) o, en Python, el `__init__.py` que re-exporta lo público. El resto son piezas internas que nadie importa desde fuera. Excepciones: `core/`, que se importa por ficheros, y las subcarpetas de detalle (`providers/`, `queries/`).
 3. **Regla de descenso.** Un fichero se lee de arriba abajo: la clase principal primero, los detalles después. Entre carpetas, igual: `app.py`, luego quien orquesta, luego cada capacidad, luego los proveedores. Las dependencias apuntan **siempre hacia abajo**: `app.py` → orquestación → capacidades → `core/`. Dos capacidades no se importan entre sí; si lo necesitan, quien las combina está un nivel por encima.
-4. **Strategy + Factory.** Cada capacidad intercambiable tiene una clase base `ABC` en `base.py`, un fichero por proveedor y un `factory.py` con un `match` sobre un Enum que viene del `.env`. El proveedor se importa solo cuando se elige (instalas solo lo que usas) y un valor desconocido falla con un error que lo nombra. La lógica común vive en la clase base; la subclase solo guarda y lee.
+4. **Strategy + Factory, solo cuando hay algo que elegir.** Cada capacidad **intercambiable** tiene una clase base `ABC` en `base.py`, un fichero por proveedor y un `factory.py` con un `match` sobre un Enum que viene del `.env`. El proveedor se importa solo cuando se elige (instalas solo lo que usas) y un valor desconocido falla con un error que lo nombra. La lógica común vive en la clase base; la subclase solo guarda y lee. **Si solo hay un proveedor y no va a haber un doble de test, no hay clase base ni factory**: una clase concreta y punto. La abstracción se paga cuando aparece la segunda implementación, no antes.
 
 ### De dónde viene
 
-Nada de esto es nuevo; es una combinación concreta de ideas con nombre:
+Nada de esto es nuevo; es una combinación concreta de ideas con nombre y con libro:
 
-- **Package by feature / vertical slices.** Organizar por capacidad en lugar de por capa técnica. Robert C. Martin lo llama *screaming architecture* ("la estructura debería gritar qué hace el sistema, no con qué framework está hecho", *Clean Architecture*, 2017); Simon Brown lo defiende en *Modular Monoliths*; Jimmy Bogard lo popularizó como *vertical slice architecture*. En Python, las *apps* de Django y los paquetes de Go siguen esta idea.
-- **Puertos y adaptadores, pero locales.** La clase base es el puerto y cada proveedor un adaptador (Alistair Cockburn, *Hexagonal Architecture*, 2005). La diferencia con la hexagonal habitual es que el puerto vive en la carpeta de su capacidad, no en una capa `domain/` común.
-- **Strategy y Factory** son patrones del *Gang of Four* (*Design Patterns*, 1994). El `match` sobre un Enum es la forma moderna de la factory en Python 3.10+.
-- **Composition root.** `app.py` construye todo una vez y lo inyecta; nadie más llama a una factory. Es la inyección de dependencias manual de Mark Seemann (*Dependency Injection: Principles, Practices, and Patterns*, 2019), sin contenedor.
-- **Regla de descenso** (*stepdown rule*): Robert C. Martin, *Clean Code* (2008), capítulo 3: el código se lee como un periódico, el titular arriba y el detalle abajo. Aquí se aplica también a las carpetas.
-- **Fachada:** patrón *Facade* del Gang of Four. Una puerta por módulo esconde las piezas internas y permite reordenarlas sin tocar a quien las usa.
+| Regla de aquí | Idea | Dónde está escrita |
+|---|---|---|
+| Por funcionalidad | *Package by feature*, *vertical slices*, *screaming architecture*: la estructura grita qué hace el sistema, no con qué framework está hecho | Robert C. Martin, **Clean Architecture** (Prentice Hall, 2017), cap. 34 "The Missing Chapter" (con Simon Brown) y cap. 21 "Screaming Architecture". Simon Brown, charla y artículos *Modular Monoliths* (2018). Jimmy Bogard, *Vertical Slice Architecture* (2018). En Python, las *apps* de Django; en Go, los paquetes |
+| Clase base + proveedores | Puertos y adaptadores (hexagonal), pero con el puerto dentro de su capacidad y no en una capa `domain/` común | Alistair Cockburn, *Hexagonal Architecture* (artículo, 2005). Martin, **Clean Architecture**, cap. 11 "DIP: The Dependency Inversion Principle" |
+| Strategy + Factory | Patrones *Strategy* y *Factory Method*; el `match` sobre un Enum es la factory moderna en Python 3.10+ | Gamma, Helm, Johnson y Vlissides, **Design Patterns** (Addison-Wesley, 1994), "Strategy" y "Factory Method" |
+| Solo con un segundo proveedor | YAGNI: no se abstrae hasta que hay dos implementaciones (o un doble de test) | Kent Beck, **Extreme Programming Explained** (Addison-Wesley, 1999). Martin Fowler, artículo *Yagni* (2015) |
+| `app.py` en la cima | *Composition root*: un solo sitio construye el grafo de objetos y lo inyecta; nadie más llama a una factory | Mark Seemann y Steven van Deursen, **Dependency Injection: Principles, Practices, and Patterns** (Manning, 2019), cap. 4 |
+| Regla de descenso | *Stepdown rule*: el código se lee como un periódico, titular arriba y detalle abajo; aquí también entre carpetas | Robert C. Martin, **Clean Code** (Prentice Hall, 2008), cap. 3 "Functions", apartado "Reading Code from Top to Bottom" |
+| Dependencias hacia abajo | *Acyclic Dependencies Principle* y *Stable Dependencies Principle*: sin ciclos entre paquetes, y se depende hacia lo estable | Martin, **Clean Architecture**, cap. 14 "Component Coupling" |
+| Fachada | Patrón *Facade*: una puerta por módulo esconde las piezas internas | Gamma et al., **Design Patterns**, "Facade" |
+| Lo que cambia junto vive junto | *Common Closure Principle* | Martin, **Clean Architecture**, cap. 13 "Component Cohesion" |
 
 ### Límites y cómo evitarlos
 
@@ -63,13 +70,15 @@ Esta forma de estructurar tiene riesgos conocidos; conviene nombrarlos para no c
 
 - **Ciclos entre capacidades.** El peligro número uno de organizar por funcionalidad: `rag/` importa `auth/`, `auth/` importa `limits/`, y la pirámide se convierte en una red. La regla de dependencias hacia abajo es lo que lo evita, y se puede hacer cumplir con una herramienta (`import-linter` con contratos de capas) en lugar de confiar en la disciplina.
 - **`core/` como cajón desastre.** Todo lo que no se sabe dónde poner acaba en `core/` y se vuelve la carpeta más grande del proyecto. Regla práctica: si lo usa una sola capacidad, va a esa capacidad; si lo usan dos, se pregunta primero si una debería estar encima de la otra.
-- **Abstraer antes de tiempo.** Una `ABC` y una factory para algo que solo tendrá un proveedor es ceremonia. La justificación aquí es el doble de test (RAM, nulo, falso): si no vas a querer un doble, no hace falta la base. YAGNI sigue aplicando.
+- **Abstraer antes de tiempo.** Una `ABC` y una factory para algo que solo tendrá un proveedor es ceremonia (regla 4). La única excepción que la justifica es el doble de test (RAM, nulo, falso): si no vas a querer un doble, una clase concreta. Cuando llegue el segundo proveedor se extrae la base; es un cambio local y barato.
 - **Imports perezosos que fallan tarde.** Importar el proveedor dentro del `match` significa que un paquete que falta no se nota hasta que ese proveedor se elige en producción. Un test que construya cada proveedor desde settings lo descubre antes.
 - **Capacidades que crecen.** Una carpeta con quince ficheros ya no se lee como una pirámide. Es la señal para subcarpetas de detalle (`providers/`, `queries/`) o para partirla en dos capacidades.
 - **Quién orquesta.** Cuando varias capacidades se combinan, hace falta una carpeta por encima que lo haga (`orchestrator/`, `conversation.py`). Si esa lógica se reparte entre las capacidades, se pierde el descenso.
 - **Onboarding.** Quien viene de Django, de Clean Architecture por capas o de la hexagonal clásica busca `models/`, `services/` y `repositories/`. Un párrafo como este en el README del proyecto ahorra esa semana.
 
 Las recetas de este repositorio siguen estas reglas: cada una es una capacidad con `base.py`, un fichero por proveedor, `factory.py`, `settings.py` y su doble de test, y `create_app`/`main.py` es la cima que llama a cada factory una vez.
+
+Los diagramas de cada regla (la montaña, por funcionalidad frente a por capas, Strategy + Factory y cuándo no, fachada y descenso) están descritos en [docs/diagrams.md](docs/diagrams.md), en inglés (el texto de las imágenes también), con sus nombres de archivo en `docs/img/`.
 
 ## Recetas
 
