@@ -3,3 +3,6 @@ __pycache__/
 dist/
 *.egg-info/
 .venv/
+node_modules/
+unpacked-files.json
+*.tgz

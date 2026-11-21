@@ -160,9 +160,10 @@ CopyPasta-Kitchen/
 │   ├── backend/
 │   ├── agents/
 │   └── frontend/
-├── cli/               # CLI "copypasta" (paquete Python + tests)
-├── pyproject.toml     # hace instalable la CLI con uvx
-└── skills/copypasta/  # skill de Claude Code que envuelve la CLI
+├── cli/               # CLI "copypasta" (Node, con sus tests)
+├── package.json       # el paquete npm @damiangilgonzalez/copypasta: la CLI con las recetas dentro
+├── scripts/prepack.js # rescata los ficheros que npm no empaqueta (.gitignore de una receta)
+└── skills/copypasta/  # skill que envuelve la CLI (la misma que instala el harness)
 ```
 
 ## Uso (CLI `copypasta`)
@@ -184,19 +185,29 @@ copypasta get fastapi-base --to ./backend --with-requires
 copypasta check
 ```
 
-Sin instalación, vía `uvx` (necesita Python 3.11 a 3.14; `uv` lo elige solo):
+Sin instalación, con `npx` (necesita Node 18.3 o superior):
 
 ```bash
-uvx --from git+https://github.com/damiangilgonzalez1995/CopyPasta-Kitchen copypasta list
+npx @damiangilgonzalez/copypasta list
 ```
 
-El paquete lleva dentro el catálogo y las recetas, así que `get` funciona desde cualquier carpeta. Dentro del checkout también vale `python -m copypasta.main` desde `cli/`. Tests: `pytest cli/tests` (necesita `pydantic` y `pyyaml`).
+Quien usa el [harness](https://www.npmjs.com/package/@damiangilgonzalez/harness) ya lo tiene dentro, en una versión fijada:
+
+```bash
+npx @damiangilgonzalez/harness recipes list
+```
+
+El paquete lleva dentro el catálogo y las recetas, así que `get` funciona desde cualquier carpeta. Dentro del checkout vale `node cli/copypasta.js <comando>`. Tests: `npm install` y `npm test` (incluyen empaquetar de verdad y comprobar que el paquete entrega los mismos ficheros que el repo).
+
+### Publicar una versión
+
+Sube la versión en `package.json`, confirma y empuja un tag con el mismo número (`v0.2.0`). El workflow `release` valida el catálogo, pasa los tests y publica en npm; necesita el secreto `NPM_TOKEN` en el repositorio.
 
 ### En otros proyectos
 
 Dos formas, compatibles entre sí:
 
-**Skill de Claude Code** ([skills/copypasta/SKILL.md](skills/copypasta/SKILL.md)): copia la carpeta `skills/copypasta` a `.claude/skills/` del proyecto (o a `~/.claude/skills/` para tenerla en todos). Claude la carga sola cuando va a crear una API, un agente, un frontend, auth, RAG, etc., y sigue el flujo `list` → `show` → `get` → adaptar, respetando las reglas de las recetas. Necesita `uv` para ejecutar la CLI con `uvx`.
+**Skill de Claude Code** ([skills/copypasta/SKILL.md](skills/copypasta/SKILL.md)): copia la carpeta `skills/copypasta` a `.claude/skills/` del proyecto (o a `~/.claude/skills/` para tenerla en todos). Claude la carga sola cuando va a crear una API, un agente, un frontend, auth, RAG, etc., y sigue el flujo `list` → `show` → `get` → adaptar, respetando las reglas de las recetas. Necesita Node para ejecutar la CLI con `npx`. Con el harness no hay que copiar nada: la skill va en su instalación base.
 
 **Una nota en `AGENTS.md`** (o `CLAUDE.md`) del proyecto, para cualquier agente:
 
@@ -213,5 +224,5 @@ y síguela en lugar de inventar una estructura.
 2. [x] Convertir los patrones comunes en recetas:
    - [x] `project-settings`, `fastapi-base`, `langchain-agent`, `agent-memory`, `langgraph-graph`, `agent-chat-api`, `rate-limit-quota`, `conversation-history`, `agent-feedback`, `auth-verifier`, `rag-retriever`, `observability`, `voice-providers`
    - [x] `vite-react-base`, `react-agent-chat`, `react-supabase-auth`, `react-app-router`, `playwright-e2e`
-3. [x] Implementar la CLI `copypasta` (`list`, `show`, `get`, `check`; instalable con `uvx`).
+3. [x] Implementar la CLI `copypasta` (`list`, `show`, `get`, `check`; paquete npm `@damiangilgonzalez/copypasta`).
 4. [x] Skill de Claude Code que envuelve la CLI (`skills/copypasta/`).

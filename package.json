@@ -1,0 +1,40 @@
+{
+  "name": "@damiangilgonzalez/copypasta",
+  "version": "0.1.0",
+  "description": "CLI del recetario CopyPasta-Kitchen: list, show, get y check de recetas, con las recetas dentro.",
+  "type": "module",
+  "bin": {
+    "copypasta": "cli/copypasta.js"
+  },
+  "exports": {
+    ".": "./cli/lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=18.3"
+  },
+  "scripts": {
+    "test": "node --test cli/tests/",
+    "check": "node cli/copypasta.js check",
+    "prepack": "node scripts/prepack.js",
+    "postpack": "node scripts/prepack.js --clean",
+    "prepublishOnly": "npm run check && npm test"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0"
+  },
+  "files": [
+    "cli/copypasta.js",
+    "cli/lib",
+    "catalog.yaml",
+    "recipes",
+    "unpacked-files.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/damiangilgonzalez1995/CopyPasta-Kitchen.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

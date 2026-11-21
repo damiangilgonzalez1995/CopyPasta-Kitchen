@@ -1,0 +1,38 @@
+name: release
+
+# Publishes @damiangilgonzalez/copypasta to npm when a version tag is pushed (v0.1.0, v0.2.0...).
+# The tag must match the version in package.json: the tag is the decision to release, package.json is
+# what gets released, and a mismatch means one of the two is wrong.
+#
+# Requires repo secret NPM_TOKEN (npm token with publish rights on the @damiangilgonzalez scope).
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write      # npm provenance via OIDC
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - name: tag matches package.json
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package.json version $VERSION" >&2
+            exit 1
+          fi
+      - run: npm run check
+      - run: npm test
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
