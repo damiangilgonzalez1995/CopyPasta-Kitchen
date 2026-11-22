@@ -34,6 +34,8 @@ Abajo se escribe `recipes <comando>`; ponle delante la forma que toque. Si está
 3. **Copiar.** `recipes get <id> --to <carpeta> --with-requires`. Copia `files/` dentro de la carpeta destino (la raíz del backend o del frontend, no una subcarpeta nueva salvo que la receta lo diga). Nunca pisa un archivo que ya exista: si avisa "ya existía, no se toca", decide a mano qué conservar; `--force` solo cuando el usuario lo confirme. Varias recetas traen `pytest.ini` y `tests/__init__.py`: quédate con el `pytest.ini` más completo (el de `fastapi-base` lleva `asyncio_mode = auto`, que los tests async necesitan). Al final imprime qué requiere, con qué se integra y los marcadores `{{...}}` que hay que sustituir.
 4. **Adaptar.** Sustituye los marcadores (`{{app_name}}` y los que diga), sigue los pasos numerados de "Cómo adaptarla" (settings que se mezclan en el `Settings` del proyecto, `include_router`, arranque en `main.tsx`...) y ejecuta los tests que trae la receta antes de tocar nada más. Si el proyecto ya tiene una pieza equivalente (otro `Settings`, otro `create_app`), integra la receta en ella en vez de duplicarla.
 
+Si el usuario no pidió una plantilla (pidió la pieza y llegas aquí por el aviso del arranque de sesión), no copies sin preguntar: después de leer, propónsela en una línea, con el id y lo que trae, y sigue al paso 3 solo con su sí.
+
 Si `list` no tiene nada que encaje, dilo y construye la pieza siguiendo las mismas reglas de las recetas (abajo); no busques "algo parecido" y lo fuerces.
 
 ## Reglas que las recetas dan por hechas
